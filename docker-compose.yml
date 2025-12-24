@@ -1,0 +1,36 @@
+services:
+  daycare_managementsystem_api:
+    image: ${DOCKER_REGISTRY-}daycaremanagementsystemapi
+    build:
+      context: .
+      dockerfile: DayCare_ManagementSystem_API/Dockerfile
+    container_name: daycaremanagementsystemapi
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    user: root
+    environment:
+      SchoolName: "Vleeschoom Pre-School"
+      DefaultUser_Email: "paballo.mmamaro@weconnect.tech"
+      DefaultUser_Password: "JiLeloEGPhJJQYJs"
+      EmailSender: "paballoelisa22@gmail.com"
+      EmailPassword: "ywhx kbap gpvs gpwu"
+      SMTPServer: "smtp.gmail.com"
+      SMTPServerPort: "587"
+      DbSettings__UsersCollection: "Users"
+      DbSettings__RefreshTokenCollection: "RefreshTokens"
+      DbSettings__ConnectionString: "mongodb://host.docker.internal:27017"
+      DbSettings__DatabaseName: "daycare_management-system_db"
+    depends_on:
+        - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb-daycaremanagementsystemapi
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
