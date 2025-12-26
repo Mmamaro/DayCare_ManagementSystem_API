@@ -25,6 +25,7 @@ services:
       - Jwt_Issuer=${Jwt_Issuer}
       - Jwt_Audience=${Jwt_Audience}
       - FrontEndBaseUrl=${FrontEndBaseUrl}
+      - DbSettings__ApplicationsCollection=${DbSettings__ApplicationsCollection}
     depends_on:
         - mongo
 

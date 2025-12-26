@@ -327,7 +327,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var subject = "Forgot Password Request {{School Name}} Portal";
 
 
-                var emailResponse = await _emailService.SendTemplateEmail(recipients, subject, template);
+                var emailResponse = await _emailService.SendTemplateEmail(recipients, "Forgot password", template);
 
                 if (emailResponse.ToLower() != "sent")
                 {
@@ -392,14 +392,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                 string baseUrl = Environment.GetEnvironmentVariable("FrontEndBaseUrl")!;
                 var url = $"{baseUrl}/auth/change-password?token={token}&email={user.Email}";
                 var recipients = new List<string>() { user.Email };
-                var subject = "Change Password Confirmation For Connect Network Services Quote Tool";
                 var path = $"./Templates/changed-password.html";
                 var template = System.IO.File.ReadAllText(path).Replace("\n", "");
 
                 template = template.Replace("{{NAME}}", user.Firstname)
                            .Replace("{{LOGIN_LINK}}", url);
 
-                var emailResponse = await _emailService.SendTemplateEmail(recipients, subject, template);
+                var emailResponse = await _emailService.SendTemplateEmail(recipients, "Password changed successfully", template);
 
                 if (emailResponse.ToLower() != "sent")
                 {

@@ -102,6 +102,7 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<SeedDbService>();
             builder.Services.AddSingleton<EmailService>();
             builder.Services.AddSingleton<IUser, UserRepo>();
+            builder.Services.AddSingleton<IApplication, ApplicationRepo>();
             builder.Services.AddSingleton<MFAService>();
             builder.Services.AddSingleton<TokensHelper>();
             builder.Services.AddSingleton<IToken, TokenService>();

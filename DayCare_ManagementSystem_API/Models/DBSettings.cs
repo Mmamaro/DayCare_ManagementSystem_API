@@ -3,6 +3,7 @@
     public class DBSettings
     {
         public string UsersCollection { get; set; }
+        public string ApplicationsCollection { get; set; }
         public string RefreshTokenCollection { get; set; }
         public string ConnectionString { get; set; }
         public string DatabaseName { get; set; }
