@@ -1,0 +1,40 @@
+services:
+  daycare_managementsystem_api:
+    image: ${DOCKER_REGISTRY-}daycaremanagementsystemapi
+    build:
+      context: .
+      dockerfile: DayCare_ManagementSystem_API/Dockerfile
+    container_name: daycaremanagementsystemapi
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    user: root
+    environment:
+      - SchoolName=${SchoolName}
+      - DefaultUser_Email=${DefaultUser_Email}
+      - DefaultUser_Password=${DefaultUser_Password}
+      - EmailSender=${EmailSender}
+      - EmailPassword=${EmailPassword}
+      - SMTPServer=${SMTPServer}
+      - SMTPServerPort=${SMTPServerPort}
+      - DbSettings__UsersCollection=${DbSettings__UsersCollection}
+      - DbSettings__RefreshTokenCollection=${DbSettings__RefreshTokenCollection}
+      - DbSettings__ConnectionString=${DbSettings__ConnectionString}
+      - DbSettings__DatabaseName=${DbSettings__DatabaseName}
+      - Jwt_Key=${Jwt_Key}
+      - Jwt_Issuer=${Jwt_Issuer}
+      - Jwt_Audience=${Jwt_Audience}
+      - FrontEndBaseUrl=${FrontEndBaseUrl}
+    depends_on:
+        - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb-daycaremanagementsystemapi
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
