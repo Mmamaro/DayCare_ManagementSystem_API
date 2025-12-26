@@ -10,17 +10,21 @@ services:
       - "8081:8081"
     user: root
     environment:
-      SchoolName: "Vleeschoom Pre-School"
-      DefaultUser_Email: "paballo.mmamaro@weconnect.tech"
-      DefaultUser_Password: "JiLeloEGPhJJQYJs"
-      EmailSender: "paballoelisa22@gmail.com"
-      EmailPassword: "ywhx kbap gpvs gpwu"
-      SMTPServer: "smtp.gmail.com"
-      SMTPServerPort: "587"
-      DbSettings__UsersCollection: "Users"
-      DbSettings__RefreshTokenCollection: "RefreshTokens"
-      DbSettings__ConnectionString: "mongodb://host.docker.internal:27017"
-      DbSettings__DatabaseName: "daycare_management-system_db"
+      - SchoolName=${SchoolName}
+      - DefaultUser_Email=${DefaultUser_Email}
+      - DefaultUser_Password=${DefaultUser_Password}
+      - EmailSender=${EmailSender}
+      - EmailPassword=${EmailPassword}
+      - SMTPServer=${SMTPServer}
+      - SMTPServerPort=${SMTPServerPort}
+      - DbSettings__UsersCollection=${DbSettings__UsersCollection}
+      - DbSettings__RefreshTokenCollection=${DbSettings__RefreshTokenCollection}
+      - DbSettings__ConnectionString=${DbSettings__ConnectionString}
+      - DbSettings__DatabaseName=${DbSettings__DatabaseName}
+      - Jwt_Key=${Jwt_Key}
+      - Jwt_Issuer=${Jwt_Issuer}
+      - Jwt_Audience=${Jwt_Audience}
+      - FrontEndBaseUrl=${FrontEndBaseUrl}
     depends_on:
         - mongo
 

@@ -9,7 +9,7 @@ using System.Security.Claims;
 using DayCare_ManagementSystem_API.Service;
 using DayCare_ManagementSystem_API.Models.DTOs;
 
-namespace ns_qoute_tool_api.Controllers
+namespace DayCare_ManagementSystem_API.Controllers
 {
    
     [Authorize]

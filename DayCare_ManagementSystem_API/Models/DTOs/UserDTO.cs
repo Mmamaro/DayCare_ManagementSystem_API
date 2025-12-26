@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ns_qoute_tool_api.Models.DTOs
+namespace DayCare_ManagementSystem_API.Models.DTOs
 {
     public class UserDTO
     {

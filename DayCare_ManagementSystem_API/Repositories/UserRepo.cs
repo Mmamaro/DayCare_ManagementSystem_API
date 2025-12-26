@@ -9,7 +9,8 @@ namespace DayCare_ManagementSystem_API.Repositories
     {
         public Task<User> AddUser(User payload);
         public Task<DeleteResult> DeleteUser(string id);
-        public Task<UpdateResult> UpdateUser(string id, UserUpdate payload);
+        public Task<UpdateResult> UpdateStaff(string id, StaffUpdate payload);
+        Task<UpdateResult> UpdateUser(string id, UserUpdate payload);
         public Task<List<User>> GetAllUsers();
         public Task<User> GetUserById(string id);
         public Task<User> GetUserByEmail(string email);
@@ -161,9 +162,9 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #endregion
 
-        #region [ Update User ]
+        #region [ Update Staff ]
 
-        public async Task<UpdateResult> UpdateUser(string id, UserUpdate payload)
+        public async Task<UpdateResult> UpdateStaff(string id, StaffUpdate payload)
         {
             try
             {
@@ -201,6 +202,54 @@ namespace DayCare_ManagementSystem_API.Repositories
                 if (payload.Active.HasValue)
                 {
                     updateOperations.Add(update.Set(u => u.Active, payload.Active));
+                }
+
+                updateOperations.Add(update.Set(u => u.UpdatedAt, DateTime.Now.AddHours(2)));
+
+                var combinedUpdate = Builders<User>.Update.Combine(updateOperations);
+
+                return await _userCollection.UpdateOneAsync(u => u.Id == id, combinedUpdate);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the user repo while trying to update user.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Update User ]
+
+        public async Task<UpdateResult> UpdateUser(string id, UserUpdate payload)
+        {
+            try
+            {
+                var user = await _userCollection.Find(c => c.Id == id).FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return default;
+                }
+
+                var update = Builders<User>.Update;
+
+                var updateOperations = new List<UpdateDefinition<User>>();
+
+                if (!string.IsNullOrEmpty(payload.Firstname))
+                {
+                    updateOperations.Add(update.Set(u => u.Firstname, payload.Firstname));
+                }
+
+                if (!string.IsNullOrWhiteSpace(payload.Lastname))
+                {
+                    updateOperations.Add(update.Set(u => u.Lastname, payload.Lastname));
+                }
+
+                if (!string.IsNullOrWhiteSpace(payload.Email))
+                {
+                    updateOperations.Add(update.Set(u => u.Email, payload.Email.ToLower()));
                 }
 
                 updateOperations.Add(update.Set(u => u.UpdatedAt, DateTime.Now.AddHours(2)));

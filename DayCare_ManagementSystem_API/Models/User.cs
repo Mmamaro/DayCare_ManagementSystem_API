@@ -26,7 +26,7 @@ namespace DayCare_ManagementSystem_API.Models
 
     }
 
-    public record RegisterModel
+    public record AddStaff
     {
         [Required(ErrorMessage = "First Name is required")]
         public string Firstname { get; set; }
@@ -41,10 +41,35 @@ namespace DayCare_ManagementSystem_API.Models
         [Required(ErrorMessage = "Role is required")]
         public string Role { get; set; }
 
+    }
+
+    public record AddGuardian
+    {
+        [Required(ErrorMessage = "First Name is required")]
+        public string Firstname { get; set; }
+
+        [Required(ErrorMessage = "Last Name is required")]
+        public string Lastname { get; set; }
+
+        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; }
+
 
     }
 
     public record UserUpdate
+    {
+        public string? Firstname { get; set; }
+        public string? Lastname { get; set; }
+        public string? Email { get; set; }
+
+    }
+
+    public record StaffUpdate
     {
         public string? Firstname { get; set; }
         public string? Lastname { get; set; }
