@@ -1,6 +1,7 @@
 ﻿using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
@@ -8,6 +9,7 @@ using System.Security.Claims;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
+    [Authorize]
     [Route("api/documents")]
     [ApiController]
     public class DocumentsController : ControllerBase
@@ -29,6 +31,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var files = new List<IFormFile>() { file1, file2, file3 };
                 var filesWithContent = new List<IFormFile>();
 
@@ -59,6 +68,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var documents = await _documentsMRepo.GetAllDocumentsMetadataByStudentIdNumber(studentIdNumber);
 
                 return Ok(documents);
@@ -75,6 +91,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var document = await _documentsMRepo.GetDocumentMetadataById(id);
 
                 if (document == null)
@@ -96,6 +119,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var document = await _documentsMRepo.GetDocumentMetadataById(documentId);
 
                 if (document == null || !System.IO.File.Exists(document.FilePath))
@@ -121,6 +151,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var document = await _documentsMRepo.GetDocumentMetadataById(documentId);
 
                 if (document == null || !System.IO.File.Exists(document.FilePath))
@@ -144,6 +181,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var document = await _documentsMRepo.GetDocumentMetadataById(id);
 
                 if (document == null)
