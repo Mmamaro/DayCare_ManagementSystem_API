@@ -50,11 +50,11 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the UploadDocuments endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
 
-        [HttpGet]
+        [HttpGet("{studentIdNumber}")]
         public async Task<ActionResult> GetDocumentsByStudentId(string studentIdNumber)
         {
             try
@@ -66,7 +66,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the GetDocumentsByStudentId endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
 
@@ -87,7 +87,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the GetDocumentsById endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
 
@@ -112,7 +112,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the ViewPdfAsBase64 endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
 
@@ -135,7 +135,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the DownloadPdf endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
 
@@ -158,7 +158,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the DocumentsController in the GetDocumentsById endpoint");
-                return StatusCode(500, new { Message = "Encoutered an erro" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
     }
