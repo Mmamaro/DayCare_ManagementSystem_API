@@ -18,6 +18,7 @@ services:
       - SMTPServer=${SMTPServer}
       - SMTPServerPort=${SMTPServerPort}
       - DbSettings__UsersCollection=${DbSettings__UsersCollection}
+      - DbSettings__DocumentsMetadataCollection=${DbSettings__DocumentsMetadataCollection}
       - DbSettings__RefreshTokenCollection=${DbSettings__RefreshTokenCollection}
       - DbSettings__ConnectionString=${DbSettings__ConnectionString}
       - DbSettings__DatabaseName=${DbSettings__DatabaseName}
@@ -26,6 +27,7 @@ services:
       - Jwt_Audience=${Jwt_Audience}
       - FrontEndBaseUrl=${FrontEndBaseUrl}
       - DbSettings__ApplicationsCollection=${DbSettings__ApplicationsCollection}
+      - DocumentsFolder=${DocumentsFolder}
     depends_on:
         - mongo
 

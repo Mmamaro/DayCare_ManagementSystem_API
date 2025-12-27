@@ -15,6 +15,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<DeleteResult> DeleteApplication(string id);
         public Task<List<Application>> GetAllApplications();
         public Task<Application> GetApplicationById(string id);
+        public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
         public Task<UpdateResult> UpdateApplicationMedicalConditions(string applicationId, Allergy payload);
         public Task<UpdateResult> UpdateApplicationAllergies(string applicationId, Allergy payload);
         public Task<UpdateResult> UpdateStudentProfile(string applicationId, StudentProfile payload);
@@ -45,8 +46,6 @@ namespace DayCare_ManagementSystem_API.Repositories
         {
             try
             {
-                payload.ApplicationId = ObjectId.GenerateNewId().ToString();
-
 
                 await _ApplicationCollection.InsertOneAsync(payload);
 
@@ -55,7 +54,7 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo while trying to add Application.");
+                _logger.LogError(ex, "Error in the Application repo in the AddApplication method.");
                 throw;
 
             }
@@ -73,7 +72,7 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo while trying to delete Application.");
+                _logger.LogError(ex, "Error in the Application repo in the DeleteApplication method.");
                 throw;
             }
         }
@@ -90,7 +89,7 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo while trying to get all Applications.");
+                _logger.LogError(ex, "Error in the Application repo in the GetAllApplications method.");
                 throw;
             }
         }
@@ -108,7 +107,25 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo while trying to get Application by id.");
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get Application By Student Id Number ]
+
+        public async Task<Application> GetApplicationByStudentIdNumber(string IdNumber)
+        {
+            try
+            {
+                return await _ApplicationCollection.Find(c => c.StudentProfile.IdNumber == IdNumber).FirstOrDefaultAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationByStudentIdNumber method.");
                 throw;
             }
         }
@@ -126,7 +143,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 if (!string.IsNullOrWhiteSpace(payload.StudentIdNumber))
                 {
-                    filter &= builder.Eq(a => a.Student.IdNumber, payload.StudentIdNumber);
+                    filter &= builder.Eq(a => a.StudentProfile.IdNumber, payload.StudentIdNumber);
                 }
 
                 if (!string.IsNullOrWhiteSpace(payload.NextOfKinIdNumber))
@@ -150,7 +167,7 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo while trying to get Application by filters");
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationByFilters method.");
                 throw;
             }
         }
@@ -227,13 +244,13 @@ namespace DayCare_ManagementSystem_API.Repositories
             {
                 var filter = Builders<Application>.Filter.And(
                     Builders<Application>.Filter.Eq(a => a.ApplicationId, applicationId),
-                    Builders<Application>.Filter.Eq(a => a.Student.StudentProfileId, payload.StudentProfileId)
+                    Builders<Application>.Filter.Eq(a => a.StudentProfile.StudentProfileId, payload.StudentProfileId)
                 );
 
 
                 //Updates the Matched element which should be one.
                 var update = Builders<Application>.Update
-                        .Set(a => a.Student, payload)
+                        .Set(a => a.StudentProfile, payload)
                          .Set(a => a.LastUpdatedAt, DateTime.UtcNow); ;
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);

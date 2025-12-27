@@ -16,7 +16,7 @@ namespace DayCare_ManagementSystem_API.Models
         public string RejectionNotes { get; set; }
         public DateTime SubmittedAt { get; set; }
         public DateTime LastUpdatedAt { get; set; }
-        public StudentProfile Student { get; set; }
+        public StudentProfile StudentProfile { get; set; }
         public List<Allergy> allergies { get; set; }
         public List<MedicalCondition> MedicalConditions { get; set; }
         public List<NextOfKin> NextOfKin { get; set; }
@@ -25,7 +25,8 @@ namespace DayCare_ManagementSystem_API.Models
 
     public class ApplicationRequest
     {
-        public StudentProfile Student { get; set; }
+        public string EnrollmentYear { get; set; }
+        public StudentProfile StudentProfile { get; set; }
         public List<Allergy> allergies { get; set; }
         public List<MedicalCondition> MedicalConditions { get; set; }
         public List<NextOfKin> NextOfKin { get; set; }

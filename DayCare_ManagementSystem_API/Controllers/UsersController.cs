@@ -213,7 +213,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         #endregion
 
         #region [ Get Users ]
-        [Authorize(Roles = "admin,staff")]
+        [Authorize(Roles = "admin")]
         [HttpGet]
         public async Task<ActionResult<List<UserDTO>>> GetUsers()
         {
@@ -252,7 +252,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         #endregion
 
         #region [ Get User By Id ]
-        [Authorize(Roles = "admin,staff")]
+        [Authorize(Roles = "admin")]
         [HttpGet("{id:length(24)}")]
         public async Task<ActionResult<UserDTO>> GetUserById(string id)
         {

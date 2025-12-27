@@ -2,6 +2,7 @@
 {
     public class DBSettings
     {
+        public string DocumentsMetadataCollection { get; set; }
         public string UsersCollection { get; set; }
         public string ApplicationsCollection { get; set; }
         public string RefreshTokenCollection { get; set; }
