@@ -17,13 +17,13 @@ namespace DayCare_ManagementSystem_API.Service
             _logger = logger;
         }
 
-        public async Task<bool> UploadDocuments(ApplicationRequest payload, List<IFormFile> files)
+        public async Task<bool> UploadDocuments(string StudentIdNumber, List<IFormFile> files)
         {
             try
             {
 
                 var documentsFolder = Environment.GetEnvironmentVariable("DocumentsFolder")!;
-                string studentFolder = Path.Combine(documentsFolder + @$"\{payload.EnrollmentYear}", payload.StudentProfile.IdNumber);
+                string studentFolder = Path.Combine(documentsFolder, StudentIdNumber);
                 var uploadedDocuments = new List<DocumentMetaData>();
 
                 if (!Directory.Exists(studentFolder))
@@ -33,14 +33,14 @@ namespace DayCare_ManagementSystem_API.Service
 
                 foreach (var file in files)
                 {
-                    string filePath = Path.Combine(studentFolder, $"{DateTime.Now:yyyyMMddHHmmss}_{file.FileName}");
+                    string filePath = Path.Combine(studentFolder, $"{file.FileName}");
                     using var stream = new FileStream(filePath, FileMode.Create);
                     await file.CopyToAsync(stream);
 
                     var document = new DocumentMetaData()
                     {
                         Id = ObjectId.GenerateNewId().ToString(),
-                        StudentIdNumber = payload.StudentProfile.IdNumber,
+                        StudentIdNumber = StudentIdNumber,
                         FileName = file.Name,
                         FilePath = filePath,
                         UploadedAt = DateTime.UtcNow,
@@ -61,18 +61,20 @@ namespace DayCare_ManagementSystem_API.Service
             }
         }
 
-        public void DeleteStudentDocumentsFolder(ApplicationRequest payload)
+        public async void DeleteStudentDocumentsFolder(string StudentIdNumber)
         {
 
             try
             {
                 var documentsFolder = Environment.GetEnvironmentVariable("DocumentsFolder")!;
-                string studentFolder = Path.Combine(documentsFolder + @$"\{payload.EnrollmentYear}", payload.StudentProfile.IdNumber);
+                string studentFolder = Path.Combine(documentsFolder, StudentIdNumber);
 
                 if (Directory.Exists(studentFolder))
                 {
                     Directory.Delete(studentFolder, true);
                 }
+
+                await _documentMetadataRepo.DeleteManyDocumentsMetaData(StudentIdNumber);
             }
             catch (Exception ex)
             {

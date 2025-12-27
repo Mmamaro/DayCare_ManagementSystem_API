@@ -1,11 +1,13 @@
 ﻿using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Models.DTOs;
+using DayCare_ManagementSystem_API.Models.ValueObjects;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
+using System;
 using System.Security.Claims;
 using static System.Net.Mime.MediaTypeNames;
 using Application = DayCare_ManagementSystem_API.Models.Application;
@@ -28,42 +30,18 @@ namespace DayCare_ManagementSystem_API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SubmitApplication([FromForm] ApplicationRequest payload, [FromForm] IFormFile? file1, [FromForm] IFormFile? file2, [FromForm] IFormFile? file3)
+        public async Task<IActionResult> SubmitApplication(ApplicationRequest payload)
         {
             try
             {
 
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
-                int countEmptyDocs = 0;
 
                 if (tokenType.ToLower() != "access-token")
                 {
-                    return Unauthorized(new {Message = "Invalid token"});
+                    return Unauthorized(new { Message = "Invalid token" });
                 }
-
-                var files = new List<IFormFile>(){ file1, file2, file3 };
-                var filesWithContent = new List<IFormFile>();
-
-                foreach (var file in files)
-                {
-                    if (file == null && file.Length <= 0)
-                    {
-
-                        countEmptyDocs++;
-
-                    }
-                    else
-                    {
-                        filesWithContent.Add(file);
-                    }
-                }
-
-                if (countEmptyDocs > 1) return BadRequest(new { Message = "Could not upload more than 1 document" });
-
-                var documentsUploaded = await _documentUploadService.UploadDocuments(payload, filesWithContent);
-
-                if(!documentsUploaded) return BadRequest(new { Message = "Failed to upload documents"});
 
                 var application = new Application()
                 {
@@ -71,20 +49,20 @@ namespace DayCare_ManagementSystem_API.Controllers
                     SubmittedAt = DateTime.UtcNow,
                     SubmittedBy = tokenUserEmail,
                     LastUpdatedAt = DateTime.UtcNow,
-                    allergies = payload.allergies,
+                    Allergies = payload.allergies,
                     EnrollmentYear = payload.EnrollmentYear,
                     MedicalConditions = payload.MedicalConditions,
                     NextOfKin = payload.NextOfKin,
-                    Status = "waiting",
+                    ApplicationStatus = "waiting",
                     StudentProfile = payload.StudentProfile,
+                    AreDocumentsSubmitted = false,
+                    DocumentsStatus = "not-uploaded"
                 };
 
                 var result = await _applicationRepo.AddApplication(application);
 
                 if (result == null)
                 {
-                    _documentUploadService.DeleteStudentDocumentsFolder(payload);
-
                     return BadRequest(new { Message = "Failed to add application" });
                 }
 
@@ -92,11 +70,11 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
             catch (Exception ex)
             {
-                _documentUploadService.DeleteStudentDocumentsFolder(payload);
                 _logger.LogError(ex, "Error in the ApplicationController in the SubmitApplication endpoint");
-                return StatusCode(500, new {Message = "Encoutered an error" });
+                return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
+
         [HttpGet("{id:length(24)}")]
         public async Task<IActionResult> GetApplicationById(string applicationId)
         {
@@ -113,7 +91,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (application == null)
                 {
-                    return NotFound(); 
+                    return NotFound();
                 }
 
                 return Ok(application);
@@ -125,7 +103,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
         [HttpGet]
-        public async Task<IActionResult> GetDocuments()
+        public async Task<IActionResult> GetApplications()
         {
             try
             {
@@ -145,12 +123,14 @@ namespace DayCare_ManagementSystem_API.Controllers
                     EnrollmentYear = x.EnrollmentYear,
                     LastUpdatedAt = x.LastUpdatedAt,
                     RejectionNotes = x.RejectionNotes,
-                    Status = x.Status,
+                    ApplicationStatus = x.ApplicationStatus,
                     SubmittedAt = x.SubmittedAt,
                     SubmittedBy = x.SubmittedBy
                 });
 
-                return Ok(applicationDTO);
+                var orderedApplications = applicationDTO.OrderByDescending(x => x.SubmittedAt).ToList();
+
+                return Ok(orderedApplications);
             }
             catch (Exception ex)
             {
@@ -166,6 +146,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
 
                 if (tokenType != "access-token")
@@ -177,7 +158,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (documents == null)
                 {
-                    return NotFound(new {Messagee = "Your filters did not return any data"});
+                    return NotFound(new { Messagee = "Your filters did not return any data" });
                 }
 
                 return Ok(documents);
@@ -190,31 +171,248 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        //To do - Updates and delete
-        [HttpPost]
-        public async Task<IActionResult> SubmitApplication()
+        [HttpPatch("{applicationId:length(24)}/update-allergy")]
+        public async Task<IActionResult> UpdateApplicationAllergies(string applicationId, Allergy allergy)
         {
             try
             {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
 
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var validAllergySeverities = new List<string>() { "low", "medium", "high" };
+
+                if (!validAllergySeverities.Contains(allergy.Severity.ToLower()))
+                {
+                    return BadRequest(new { Message = "Invalid severity" });
+                }
+
+                var result = await _applicationRepo.UpdateApplicationAllergies(applicationId, allergy);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest( new {Message = "Could not update allergy"} );
+                }
+
+                return Ok(new {Message = "Update successful"});
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the ApplicationController in the GetApplicationById endpoint");
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationAllergies endpoint");
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
 
         }
-        [HttpPost]
-        public async Task<IActionResult> SubmitApplication()
+
+        [HttpPatch("{applicationId:length(24)}/update-medicalcondition")]
+        public async Task<IActionResult> UpdateMedicalCondition(string applicationId, MedicalCondition medicalCondition)
         {
             try
             {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
 
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var validSeverities = new List<string>() { "low", "medium", "high" };
+
+                if (!validSeverities.Contains(medicalCondition.Severity.ToLower()))
+                {
+                    return BadRequest(new { Message = "Invalid severity" });
+                }
+
+                var result = await _applicationRepo.UpdateApplicationMedicalConditions(applicationId, medicalCondition);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not update medical condition" });
+                }
+
+                return Ok(new { Message = "Update successful" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the ApplicationController in the GetApplicationById endpoint");
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateMedicalCondition endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{applicationId:length(24)}/update-nextofkin")]
+        public async Task<IActionResult> UpdateApplicationNextOfKin(string applicationId, NextOfKin payload)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var result = await _applicationRepo.UpdateNextOfKin(applicationId, payload);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not update medical condition" });
+                }
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationNextOfKin endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{applicationId:length(24)}/update-status")]
+        public async Task<IActionResult> UpdateApplicationStatus(string applicationId, UpdateApplicationStatus payload)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var result = await _applicationRepo.UpdateStatus(applicationId, payload);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not update Application Status" });
+                }
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationStatus endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{applicationId:length(24)}/add-medicalconditions")]
+        public async Task<IActionResult> AddMedicalConditions(string applicationId, List<AddMedicalCondition> payload)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not add medical conditions to application" });
+                }
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationNextOfKin endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+        }
+
+        [HttpPatch("{applicationId:length(24)}/add-allergies")]
+        public async Task<IActionResult> AddAllergies(string applicationId, List<AddAllergy> payload)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var result = await _applicationRepo.AddAllergies(payload, applicationId);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not add allergies to application" });
+                }
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the AddAllergies endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{applicationId:length(24)}/add-nextofkins")]
+        public async Task<IActionResult> AddNextOfKins(string applicationId, List<AddNextOfKin> payload)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var result = await _applicationRepo.AddNextOfKins(payload, applicationId);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not add NextOfKins to application" });
+                }
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the AddNextOfKins endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpDelete("{applicationId:length(24)}")]
+        public async Task<IActionResult> DeleteApplication(string applicationId)
+        {
+            try
+            {
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if(application == null)
+                {
+                    return NotFound( new {Message = "Application Not Found"} );
+                }
+
+                var result = await _applicationRepo.DeleteApplication(applicationId);
+
+                if (!result.IsAcknowledged)
+                {
+                    return BadRequest(new { Message = "Could not delete application" });
+                }
+
+                _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
+
+                return Ok(new { Message = "Delete successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the DeleteApplication endpoint");
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
 

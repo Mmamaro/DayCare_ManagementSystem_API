@@ -13,7 +13,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<DocumentMetaData> GetDocumentMetadataById(string docId);
         public Task<DeleteResult> DeleteDocumentMetaData(string docId);
         public Task<DeleteResult> DeleteAllDocumentsMetaData(DateTime startDate, DateTime endDate);
-        public Task<DeleteResult> DeleteAllDocumentsMetaData(string studentIdNumber);
+        public Task<DeleteResult> DeleteManyDocumentsMetaData(string studentIdNumber);
     }
     public class DocumentsMetadataRepo : IDocumentsMetaData
     {
