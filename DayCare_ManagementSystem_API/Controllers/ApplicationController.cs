@@ -55,8 +55,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     NextOfKin = payload.NextOfKin,
                     ApplicationStatus = "waiting",
                     StudentProfile = payload.StudentProfile,
-                    AreDocumentsSubmitted = false,
-                    DocumentsStatus = "not-uploaded"
+                    AreDocumentsSubmitted = false
                 };
 
                 var result = await _applicationRepo.AddApplication(application);

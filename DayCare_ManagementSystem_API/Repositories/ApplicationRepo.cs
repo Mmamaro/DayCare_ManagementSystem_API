@@ -26,7 +26,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> UpdateNextOfKin(string applicationId, NextOfKin payload);
         public Task<UpdateResult> UpdateStatus(string applicationId, UpdateApplicationStatus payload);
         public Task<List<Application>> GetApplicationByFilters(ApplicationFilters payload);
-        public Task<UpdateResult> UpdateIsDocumentsSubmitted(string studentId);
+        public Task<UpdateResult> UpdateAreDocumentsSubmitted(string studentIdNumber, bool isSubmitted);
 
     }
     public class ApplicationRepo : IApplication
@@ -491,8 +491,8 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #endregion
 
-        #region [ Update AreDocumentsSubmitted ]
-        public async Task<UpdateResult> UpdateIsDocumentsSubmitted(string studentIdNumber, bool isSubmitted)
+        #region [ Update Are Documents Submitted ]
+        public async Task<UpdateResult> UpdateAreDocumentsSubmitted(string studentIdNumber, bool isSubmitted)
         {
             try
             {

@@ -24,6 +24,36 @@ namespace DayCare_ManagementSystem_API.Controllers
             _logger = logger;
         }
 
+        [HttpPost("upload/{studentIdNumber}")]
+        public async Task<ActionResult> UploadDocuments(string studentIdNumber, IFormFile? file1, IFormFile? file2, IFormFile? file3)
+        {
+            try
+            {
+                var files = new List<IFormFile>() { file1, file2, file3 };
+                var filesWithContent = new List<IFormFile>();
+
+                foreach (var file in files)
+                {
+                    if (file != null && file.Length > 0)
+                    {
+                        filesWithContent.Add(file);
+                    }
+                }
+
+                var result = await _documentUploadService.UploadDocuments(studentIdNumber, filesWithContent);
+
+                if(!result) return BadRequest( new {Message = "Could not upload documents"});
+
+                return Ok( new {Message = "Upload Successful"} );
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the DocumentsController in the UploadDocuments endpoint");
+                return StatusCode(500, new { Message = "Encoutered an erro" });
+            }
+        }
+
         [HttpGet]
         public async Task<ActionResult> GetDocumentsByStudentId(string studentIdNumber)
         {
