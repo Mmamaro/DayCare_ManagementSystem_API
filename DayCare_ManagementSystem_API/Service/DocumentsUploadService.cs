@@ -9,9 +9,9 @@ namespace DayCare_ManagementSystem_API.Service
     public class DocumentsUploadService
     {
         private readonly ILogger<DocumentsUploadService> _logger;
-        private readonly DocumentsMetadataRepo _documentMetadataRepo;
+        private readonly IDocumentsMetaData _documentMetadataRepo;
 
-        public DocumentsUploadService(DocumentsMetadataRepo repo, ILogger<DocumentsUploadService> logger)
+        public DocumentsUploadService(IDocumentsMetaData repo, ILogger<DocumentsUploadService> logger)
         {
             _documentMetadataRepo = repo;
             _logger = logger;

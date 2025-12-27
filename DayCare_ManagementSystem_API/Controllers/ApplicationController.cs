@@ -405,7 +405,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not delete application" });
                 }
 
-                _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
+                await _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
 
                 return Ok(new { Message = "Delete successful" });
             }
