@@ -20,13 +20,15 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly IUser _userRepo;
         private readonly PasswordHelper _passwordHelper;
         private readonly EmailService _emailService;
+        private readonly IApplication _applicationRepo;
 
-        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService)
+        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService, IApplication applicationRepo)
         {
             _logger = logger;
             _userRepo = userRepo;
             _passwordHelper = passwordHelper;
             _emailService = emailService;
+            _applicationRepo = applicationRepo;
         }
 
         #region [ Me ]
@@ -80,12 +82,13 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var roles = new List<string>() { "staff", "admin", "guardian" };
 
-                var userExists = await _userRepo.GetUserByEmail(request.Email);
+                var EmailExists = await _userRepo.GetUserByEmail(request.Email);
 
-                if (userExists != null)
-                {
-                    return Conflict(new { Message = "User already exists" });
-                }
+                if (EmailExists != null) return Conflict(new { Message = "Email belongs to someone else" });
+
+                var idNumberExists = await _userRepo.GetUserByEmail(request.Email);
+
+                if (idNumberExists != null) return Conflict(new { Message = "Id Number belongs to someone else" });
 
                 if (!roles.Contains(request.Role.ToLower()))
                 {
@@ -150,12 +153,13 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var roles = new List<string>() { "staff", "admin", "guardian" };
 
-                var userExists = await _userRepo.GetUserByEmail(request.Email);
+                var EmailExists = await _userRepo.GetUserByEmail(request.Email);
 
-                if (userExists != null)
-                {
-                    return Conflict(new { Message = "User already exists" });
-                }
+                if (EmailExists != null) return Conflict(new { Message = "Email belongs to someone else" });
+
+                var idNumberExists = await _userRepo.GetUserByEmail(request.Email);
+
+                if (idNumberExists != null) return Conflict(new { Message = "Id Number belongs to someone else" });
 
                 if (!_passwordHelper.IsPasswordValid(request.Password))
                 {
@@ -326,36 +330,9 @@ namespace DayCare_ManagementSystem_API.Controllers
                 }
 
 
-                if (!string.IsNullOrEmpty(payload.Email))
-                {
-                    var emailExists = await _userRepo.GetUserByEmail(payload.Email.ToLower());
+                var (statusCode, message) = await EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
 
-                    if (emailExists != null && id != emailExists.Id)
-                    {
-                        return Conflict(new { Message = "Email belongs to a different user" });
-                    }
-
-                    if (emailExists == null && user.isMFAEnabled == true)
-                    {
-                        UpdateMfaFieldsModel mfaFieldsModel = new UpdateMfaFieldsModel()
-                        {
-                            isFirstSignIn = true,
-                            isMFAVerified = false,
-                            ManualEntryCode = null,
-                            userId = user.Id,
-                            MFAKey = null,
-                            QrCodeUrl = null,
-                        };
-
-                        var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
-
-                        if (mfaUpdated.IsAcknowledged == false)
-                        {
-                            _logger.LogError("Could not update mfa fields");
-                            return BadRequest(new { Message = "Could not update user" });
-                        }
-                    }
-                }
+                if (statusCode != 200) return StatusCode(statusCode, message);
 
 
                 var isUpdated = await _userRepo.UpdateStaff(id, payload);
@@ -402,38 +379,9 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Unauthorized User/Invalid token" });
                 }
 
+                var (statusCode, message) = await EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
 
-                if (!string.IsNullOrEmpty(payload.Email))
-                {
-                    var emailExists = await _userRepo.GetUserByEmail(payload.Email.ToLower());
-
-                    if (emailExists != null && id != emailExists.Id)
-                    {
-                        return Conflict(new { Message = "Email belongs to a different user" });
-                    }
-
-                    if (emailExists == null && user.isMFAEnabled == true)
-                    {
-                        UpdateMfaFieldsModel mfaFieldsModel = new UpdateMfaFieldsModel()
-                        {
-                            isFirstSignIn = true,
-                            isMFAVerified = false,
-                            ManualEntryCode = null,
-                            userId = user.Id,
-                            MFAKey = null,
-                            QrCodeUrl = null,
-                        };
-
-                        var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
-
-                        if (mfaUpdated.IsAcknowledged == false)
-                        {
-                            _logger.LogError("Could not update mfa fields");
-                            return BadRequest(new { Message = "Could not update user" });
-                        }
-                    }
-                }
-
+                if (statusCode != 200) return StatusCode(statusCode, message);
 
                 var isUpdated = await _userRepo.UpdateUser(id, payload);
 
@@ -543,6 +491,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not delete user" });
                 }
 
+                var isApplicationDeleted = await _applicationRepo.GetApplicationByStudentIdNumber(user.IdNumber);
+
+                if (isDeleted.IsAcknowledged == false)
+                {
+                    return BadRequest(new { Message = "Could not delete application associated with deleted user" });
+                }
+
                 return Ok(new { Message = "User deleted successfully" });
             }
             catch (Exception ex)
@@ -552,6 +507,60 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
         #endregion
+
+        private async Task<(int, string)> EmailAndIdNumberCheck(string id, string email, string idNUmber, User user)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(email))
+                {
+                    var emailExists = await _userRepo.GetUserByEmail(email.ToLower());
+
+                    if (emailExists != null && id != emailExists.Id)
+                    {
+                        return (409, "Email belongs to a different user");
+                    }
+
+                    if (emailExists == null && user.isMFAEnabled == true)
+                    {
+                        UpdateMfaFieldsModel mfaFieldsModel = new UpdateMfaFieldsModel()
+                        {
+                            isFirstSignIn = true,
+                            isMFAVerified = false,
+                            ManualEntryCode = null,
+                            userId = user.Id,
+                            MFAKey = null,
+                            QrCodeUrl = null,
+                        };
+
+                        var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
+
+                        if (mfaUpdated.IsAcknowledged == false)
+                        {
+                            _logger.LogError("Could not update mfa fields");
+                            return (400, "Could not update mfa fields");
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(idNUmber))
+                {
+                    var idNumberExists = await _userRepo.GetUserByIdNumber(idNUmber.ToLower());
+
+                    if (idNumberExists != null && id != idNumberExists.Id)
+                    {
+                        return (409, "Id Number belongs to a different user");
+                    }
+                }
+
+                return (200, "Success");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Users Controller in the EmailAndIdNumberCheck method.");
+                throw;
+            }
+        }
 
     }
 }

@@ -1,5 +1,6 @@
 
 using DayCare_ManagementSystem_API.Helper;
+using DayCare_ManagementSystem_API.Helpers;
 using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
@@ -110,6 +111,7 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<IApplication, ApplicationRepo>();
             builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
             builder.Services.AddSingleton<DocumentsUploadService>();
+            builder.Services.AddSingleton<IdNumberHelper>();
 
             #endregion
 

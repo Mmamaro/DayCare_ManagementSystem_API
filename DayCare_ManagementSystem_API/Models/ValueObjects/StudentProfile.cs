@@ -44,4 +44,19 @@ namespace DayCare_ManagementSystem_API.Models.ValueObjects
 
         public string? Gender { get; set; }
     }
+
+    public class AddStudentProfile
+    {
+
+        [StringLength(13, MinimumLength = 13)]
+        public string? IdNumber { get; set; }
+
+        public string? FirstName { get; set; }
+
+        public string? LastName { get; set; }
+
+        public string? DateOfBirth { get; set; }
+
+        public string? Gender { get; set; }
+    }
 }

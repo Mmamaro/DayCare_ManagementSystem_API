@@ -28,6 +28,7 @@ services:
       - FrontEndBaseUrl=${FrontEndBaseUrl}
       - DbSettings__ApplicationsCollection=${DbSettings__ApplicationsCollection}
       - DocumentsFolder=${DocumentsFolder}
+      - AppropriateStudentAge=${AppropriateStudentAge}
     depends_on:
         - mongo
 

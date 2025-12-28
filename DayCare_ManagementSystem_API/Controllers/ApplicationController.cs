@@ -1,4 +1,5 @@
-﻿using DayCare_ManagementSystem_API.Models;
+﻿using DayCare_ManagementSystem_API.Helpers;
+using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Models.DTOs;
 using DayCare_ManagementSystem_API.Models.ValueObjects;
 using DayCare_ManagementSystem_API.Repositories;
@@ -22,11 +23,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly IApplication _applicationRepo;
         private readonly ILogger<ApplicationController> _logger;
         private readonly DocumentsUploadService _documentUploadService;
-        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService)
+        private readonly IdNumberHelper _idNumberHelper;
+        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, IdNumberHelper idNumberHelper)
         {
             _logger = logger;
             _applicationRepo = applicationRepo;
             _documentUploadService = documentUploadService;
+            _idNumberHelper = idNumberHelper;
         }
 
         [HttpPost]
@@ -41,6 +44,30 @@ namespace DayCare_ManagementSystem_API.Controllers
                 if (tokenType.ToLower() != "access-token")
                 {
                     return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var (isChildAgeAppropriate, errorMessage) = _idNumberHelper.IsAgeAppropriate(payload.StudentProfile.DateOfBirth);
+
+                if (!isChildAgeAppropriate) return BadRequest( new { Message = errorMessage });
+
+                var isChildIdValid = _idNumberHelper.IsValidIdNumber(payload.StudentProfile.IdNumber);
+
+                if (!isChildIdValid) return BadRequest(new { Message = $"child's Id Number is not a valid Id Number" });
+
+                foreach (var person in payload.NextOfKin)
+                {
+
+                    var isValidId = _idNumberHelper.IsValidIdNumber(person.IdNumber);
+
+                    if (!isValidId) return BadRequest( new { Message = $"{person.Email}'s Id Number is not a valid Id Number"});
+
+                }
+
+                var applicationExists = await _applicationRepo.GetApplicationByStudentIdNumber(payload.StudentProfile.IdNumber);
+
+                if (applicationExists != null)
+                {
+                    return Conflict(new {Message = "Application for this student already exists"});
                 }
 
                 var application = new Application()
@@ -74,6 +101,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
+
         [HttpGet("{id:length(24)}")]
         public async Task<IActionResult> GetApplicationById(string applicationId)
         {
@@ -101,6 +129,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
         }
+
+        [Authorize(Roles = "admin,staff")]
         [HttpGet]
         public async Task<IActionResult> GetApplications()
         {
@@ -139,7 +169,6 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-
         [HttpPost("filters")]
         public async Task<IActionResult> GetApplicationByFilers(ApplicationFilters payload)
         {
@@ -170,6 +199,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-allergy")]
         public async Task<IActionResult> UpdateApplicationAllergies(string applicationId, Allergy allergy)
         {
@@ -206,6 +236,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-medicalcondition")]
         public async Task<IActionResult> UpdateMedicalCondition(string applicationId, MedicalCondition medicalCondition)
         {
@@ -242,6 +273,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-nextofkin")]
         public async Task<IActionResult> UpdateApplicationNextOfKin(string applicationId, NextOfKin payload)
         {
@@ -271,11 +303,25 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,staff")]
         [HttpPatch("{applicationId:length(24)}/update-status")]
         public async Task<IActionResult> UpdateApplicationStatus(string applicationId, UpdateApplicationStatus payload)
         {
             try
             {
+                var validStatuses = new List<string> { "waiting", "rejected", "accepted" };
+
+
+                if (!validStatuses.Contains(payload.Status.ToLower()))
+                {
+                    return BadRequest(new { Message = "Invalid status" });
+                }
+
+                if (payload.Status.ToLower() == "rejected" && string.IsNullOrWhiteSpace(payload.RejectionNotes))
+                {
+                    return BadRequest(new { Message = "Please provide rejection notes" });
+                }
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
@@ -300,6 +346,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-medicalconditions")]
         public async Task<IActionResult> AddMedicalConditions(string applicationId, List<AddMedicalCondition> payload)
         {
@@ -328,6 +375,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-allergies")]
         public async Task<IActionResult> AddAllergies(string applicationId, List<AddAllergy> payload)
         {
@@ -357,6 +405,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-nextofkins")]
         public async Task<IActionResult> AddNextOfKins(string applicationId, List<AddNextOfKin> payload)
         {
@@ -386,6 +435,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,guardian")]
         [HttpDelete("{applicationId:length(24)}")]
         public async Task<IActionResult> DeleteApplication(string applicationId)
         {

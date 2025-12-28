@@ -9,6 +9,9 @@ namespace DayCare_ManagementSystem_API.Models
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
+
+        [StringLength(13, MinimumLength = 13)]
+        public string? IdNumber { get; set; }
         public string Firstname { get; set; }
         public string Lastname { get; set; }
         [EmailAddress] public string Email { get; set; }
@@ -28,6 +31,10 @@ namespace DayCare_ManagementSystem_API.Models
 
     public record AddStaff
     {
+        [Required(ErrorMessage = "Id Number is required")]
+        [StringLength(13, MinimumLength = 13)]
+        public string IdNumber { get; set; }
+
         [Required(ErrorMessage = "First Name is required")]
         public string Firstname { get; set; }
 
@@ -45,6 +52,10 @@ namespace DayCare_ManagementSystem_API.Models
 
     public record AddGuardian
     {
+        [Required(ErrorMessage = "Id Number is required")]
+        [StringLength(13, MinimumLength = 13)]
+        public string IdNumber { get; set; }
+
         [Required(ErrorMessage = "First Name is required")]
         public string Firstname { get; set; }
 
@@ -63,6 +74,8 @@ namespace DayCare_ManagementSystem_API.Models
 
     public record UserUpdate
     {
+        [StringLength(13, MinimumLength = 13)]
+        public string? IdNumber { get; set; }
         public string? Firstname { get; set; }
         public string? Lastname { get; set; }
         public string? Email { get; set; }
@@ -71,6 +84,8 @@ namespace DayCare_ManagementSystem_API.Models
 
     public record StaffUpdate
     {
+        [StringLength(13, MinimumLength = 13)]
+        public string? IdNumber { get; set; }
         public string? Firstname { get; set; }
         public string? Lastname { get; set; }
         public string? Email { get; set; }

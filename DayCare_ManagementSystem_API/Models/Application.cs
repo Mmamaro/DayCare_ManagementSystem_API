@@ -38,7 +38,7 @@ namespace DayCare_ManagementSystem_API.Models
         public string? EnrollmentYear { get; set; }
         public string? StudentIdNumber { get; set; }
         public string? NextOfKinIdNumber { get; set; }
-        public bool? IsDocumentsSubmitted { get; set; }
+        public bool? AreDocumentsSubmitted { get; set; }
     }
 
     public class UpdateApplicationStatus

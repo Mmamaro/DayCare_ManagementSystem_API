@@ -17,6 +17,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> AddMedicalConditions(List<AddMedicalCondition> payload, string applicationId);
         public Task<UpdateResult> AddAllergies(List<AddAllergy> payload, string applicationId);
         public Task<DeleteResult> DeleteApplication(string id);
+        public Task<DeleteResult> DeleteApplicationByNextOfKinIdNumber(string idNumber);
         public Task<List<Application>> GetAllApplications();
         public Task<Application> GetApplicationById(string id);
         public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
@@ -51,6 +52,15 @@ namespace DayCare_ManagementSystem_API.Repositories
         {
             try
             {
+                foreach (var allergy in payload.Allergies)
+                {
+                    allergy.Severity = allergy.Severity.ToLower();
+                }
+
+                foreach (var medicalC in payload.MedicalConditions)
+                {
+                    medicalC.Severity = medicalC.Severity.ToLower();
+                }
 
                 await _ApplicationCollection.InsertOneAsync(payload);
 
@@ -121,7 +131,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         AllergyId = ObjectId.GenerateNewId().ToString(),
                         Name = x.Name,
                         Notes = x.Notes,
-                        Severity = x.Severity
+                        Severity = x.Severity.ToLower(),
                     };
 
                     Allergies.Add(allergy);
@@ -155,7 +165,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                 {
                     var medicalCon = new MedicalCondition()
                     {
-                        Severity = x.Severity,
+                        Severity = x.Severity.ToLower(),
                         Notes  = x.Notes,
                         Name = x.Name,
                         MedicalConditionId = ObjectId.GenerateNewId().ToString(),
@@ -188,6 +198,28 @@ namespace DayCare_ManagementSystem_API.Repositories
             try
             {
                 return await _ApplicationCollection.DeleteOneAsync(c => c.ApplicationId == id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the DeleteApplication method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Delete Application By NextOFKinId ]
+
+        public async Task<DeleteResult> DeleteApplicationByNextOfKinIdNumber(string idNumber)
+        {
+            try
+            {
+                var filter = Builders<Application>.Filter.ElemMatch(
+                    a => a.NextOfKin,
+                    n => n.IdNumber == idNumber
+                );
+
+                return await _ApplicationCollection.DeleteOneAsync(filter);
             }
             catch (Exception ex)
             {
@@ -278,6 +310,11 @@ namespace DayCare_ManagementSystem_API.Repositories
                     filter &= builder.Eq(a => a.EnrollmentYear, payload.EnrollmentYear);
                 }
 
+                if (payload.AreDocumentsSubmitted.HasValue)
+                {
+                    filter &= builder.Eq(a => a.AreDocumentsSubmitted, payload.AreDocumentsSubmitted);
+                }
+
                 return await _ApplicationCollection
                                 .Find(filter)
                                 .ToListAsync();
@@ -305,7 +342,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
 
                  updates.Add(Builders<Application>.Update
-                    .Set(a => a.ApplicationStatus, payload.Status));
+                    .Set(a => a.ApplicationStatus, payload.Status.ToLower()));
 
                 if (!string.IsNullOrEmpty(payload.RejectionNotes))
                 {
@@ -351,7 +388,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("NextOfKin.$.Relationship", payload.Relationship)
                         .Set("NextOfKin.$.IdNumber", payload.IdNumber)
                         .Set("NextOfKin.$.PhoneNumber", payload.PhoneNumber)
-                        .Set("NextOfKin.$.Email", payload.Email)
+                        .Set("NextOfKin.$.Email", payload.Email.ToLower())
                         .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
@@ -441,7 +478,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                         .Set("Allergies.$.Name", payload.Name)
-                        .Set("Allergies.$.Severity", payload.Severity)
+                        .Set("Allergies.$.Severity", payload.Severity.ToLower())
                         .Set("Allergies.$.Notes", payload.Notes)
                         .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
 

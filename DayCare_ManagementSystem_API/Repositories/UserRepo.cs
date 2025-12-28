@@ -13,6 +13,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         Task<UpdateResult> UpdateUser(string id, UserUpdate payload);
         public Task<List<User>> GetAllUsers();
         public Task<User> GetUserById(string id);
+        public Task<User> GetUserByIdNumber(string idNumber);
         public Task<User> GetUserByEmail(string email);
         public Task<User> GetUserByTwoFAKeyAsync(string encryptedText);
         public Task<UpdateResult> UpdateMFAfields(UpdateMfaFieldsModel request);
@@ -104,6 +105,24 @@ namespace DayCare_ManagementSystem_API.Repositories
             try
             {
                 return await _userCollection.Find(c => c.Id == id).FirstOrDefaultAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the user repo while trying to get user by id.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get User By Id Number ]
+
+        public async Task<User> GetUserByIdNumber(string idNumber)
+        {
+            try
+            {
+                return await _userCollection.Find(c => c.IdNumber == idNumber).FirstOrDefaultAsync();
 
             }
             catch (Exception ex)
