@@ -8,6 +8,7 @@ using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Models.DTOs;
 using System.Security.Claims;
 using DayCare_ManagementSystem_API.Service;
+using DayCare_ManagementSystem_API.Helpers;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
@@ -21,14 +22,16 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly PasswordHelper _passwordHelper;
         private readonly EmailService _emailService;
         private readonly IApplication _applicationRepo;
+        private readonly GeneralChecksHelper _generalChecksHelper;
 
-        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService, IApplication applicationRepo)
+        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService, IApplication applicationRepo, GeneralChecksHelper generalChecksHelper)
         {
             _logger = logger;
             _userRepo = userRepo;
             _passwordHelper = passwordHelper;
             _emailService = emailService;
             _applicationRepo = applicationRepo;
+            _generalChecksHelper = generalChecksHelper;
         }
 
         #region [ Me ]
@@ -330,7 +333,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 }
 
 
-                var (statusCode, message) = await EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
+                var (statusCode, message) = await _generalChecksHelper.EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
 
                 if (statusCode != 200) return StatusCode(statusCode, message);
 
@@ -379,7 +382,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Unauthorized User/Invalid token" });
                 }
 
-                var (statusCode, message) = await EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
+                var (statusCode, message) = await _generalChecksHelper.EmailAndIdNumberCheck(id, payload.Email, payload.IdNumber, user);
 
                 if (statusCode != 200) return StatusCode(statusCode, message);
 
@@ -507,60 +510,6 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
         #endregion
-
-        private async Task<(int, string)> EmailAndIdNumberCheck(string id, string email, string idNUmber, User user)
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(email))
-                {
-                    var emailExists = await _userRepo.GetUserByEmail(email.ToLower());
-
-                    if (emailExists != null && id != emailExists.Id)
-                    {
-                        return (409, "Email belongs to a different user");
-                    }
-
-                    if (emailExists == null && user.isMFAEnabled == true)
-                    {
-                        UpdateMfaFieldsModel mfaFieldsModel = new UpdateMfaFieldsModel()
-                        {
-                            isFirstSignIn = true,
-                            isMFAVerified = false,
-                            ManualEntryCode = null,
-                            userId = user.Id,
-                            MFAKey = null,
-                            QrCodeUrl = null,
-                        };
-
-                        var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
-
-                        if (mfaUpdated.IsAcknowledged == false)
-                        {
-                            _logger.LogError("Could not update mfa fields");
-                            return (400, "Could not update mfa fields");
-                        }
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(idNUmber))
-                {
-                    var idNumberExists = await _userRepo.GetUserByIdNumber(idNUmber.ToLower());
-
-                    if (idNumberExists != null && id != idNumberExists.Id)
-                    {
-                        return (409, "Id Number belongs to a different user");
-                    }
-                }
-
-                return (200, "Success");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in the Users Controller in the EmailAndIdNumberCheck method.");
-                throw;
-            }
-        }
 
     }
 }

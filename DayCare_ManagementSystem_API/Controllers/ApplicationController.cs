@@ -23,13 +23,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly IApplication _applicationRepo;
         private readonly ILogger<ApplicationController> _logger;
         private readonly DocumentsUploadService _documentUploadService;
-        private readonly IdNumberHelper _idNumberHelper;
-        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, IdNumberHelper idNumberHelper)
+        private readonly GeneralChecksHelper _generalChecksHelper;
+        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper)
         {
             _logger = logger;
             _applicationRepo = applicationRepo;
             _documentUploadService = documentUploadService;
-            _idNumberHelper = idNumberHelper;
+            _generalChecksHelper = genralChecksHelper;
         }
 
         [HttpPost]
@@ -46,22 +46,24 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
-                var (isChildAgeAppropriate, errorMessage) = _idNumberHelper.IsAgeAppropriate(payload.StudentProfile.DateOfBirth);
+                var (isChildAgeAppropriate, errorMessage) = _generalChecksHelper.IsAgeAppropriate(payload.StudentProfile.DateOfBirth);
 
                 if (!isChildAgeAppropriate) return BadRequest( new { Message = errorMessage });
 
-                var isChildIdValid = _idNumberHelper.IsValidIdNumber(payload.StudentProfile.IdNumber);
+                var isChildIdValid = _generalChecksHelper.IsValidIdNumber(payload.StudentProfile.IdNumber);
 
                 if (!isChildIdValid) return BadRequest(new { Message = $"child's Id Number is not a valid Id Number" });
 
                 foreach (var person in payload.NextOfKin)
                 {
 
-                    var isValidId = _idNumberHelper.IsValidIdNumber(person.IdNumber);
+                    var isValidId = _generalChecksHelper.IsValidIdNumber(person.IdNumber);
 
                     if (!isValidId) return BadRequest( new { Message = $"{person.Email}'s Id Number is not a valid Id Number"});
 
                 }
+
+                if (_generalChecksHelper.HasDuplicateNames(payload.MedicalConditions, payload.allergies)) return Conflict(new {Message = "Duplicate Allergy or Medical Condition Name"});
 
                 var applicationExists = await _applicationRepo.GetApplicationByStudentIdNumber(payload.StudentProfile.IdNumber);
 
@@ -219,6 +221,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Invalid severity" });
                 }
 
+                var allergyExists = await _applicationRepo.GetAllergyByName(applicationId, allergy.Name);
+
+                if(allergyExists != null && allergy.AllergyId != allergyExists.AllergyId)
+                {
+                    return Conflict(new {Message = "Allergy already exists in this application"});
+                }
+
                 var result = await _applicationRepo.UpdateApplicationAllergies(applicationId, allergy);
 
                 if (!result.IsAcknowledged)
@@ -254,6 +263,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                 if (!validSeverities.Contains(medicalCondition.Severity.ToLower()))
                 {
                     return BadRequest(new { Message = "Invalid severity" });
+                }
+
+                var medicalConditionExists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalCondition.Name);
+
+                if (medicalConditionExists != null && medicalConditionExists.MedicalConditionId != medicalConditionExists.MedicalConditionId)
+                {
+                    return Conflict(new { Message = "Medical Condition already exists in this application" });
                 }
 
                 var result = await _applicationRepo.UpdateApplicationMedicalConditions(applicationId, medicalCondition);
@@ -359,6 +375,15 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Application Not Found" });
                 }
 
+                if (_generalChecksHelper.HasDuplicateNames(payload, null)) return Conflict(new { Message = "Duplicate Medical Condition Name in request payload" });
+
+                foreach (var medicalC in payload)
+                {
+                    var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
+
+                    return Conflict(new { Message = "Medical Condition already exists on this application" });
+                }
+
                 var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
 
                 if (!result.IsAcknowledged)
@@ -386,6 +411,15 @@ namespace DayCare_ManagementSystem_API.Controllers
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
+                }
+
+                if (_generalChecksHelper.HasDuplicateNames(null, payload)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
+
+                foreach (var medicalC in payload)
+                {
+                    var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
+
+                    return Conflict(new { Message = "Allergy already exists on this application" });
                 }
 
                 var result = await _applicationRepo.AddAllergies(payload, applicationId);
@@ -466,5 +500,6 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
 
         }
+
     }
 }

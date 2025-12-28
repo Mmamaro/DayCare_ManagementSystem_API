@@ -111,7 +111,7 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<IApplication, ApplicationRepo>();
             builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
             builder.Services.AddSingleton<DocumentsUploadService>();
-            builder.Services.AddSingleton<IdNumberHelper>();
+            builder.Services.AddSingleton<GeneralChecksHelper>();
 
             #endregion
 

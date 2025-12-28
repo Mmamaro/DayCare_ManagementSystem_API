@@ -21,6 +21,8 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<List<Application>> GetAllApplications();
         public Task<Application> GetApplicationById(string id);
         public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
+        public Task<Allergy> GetAllergyByName(string applicationId, string allergyName);
+        public Task<MedicalCondition> GetMedicalConditionByName(string applicationId, string medicalCName);
         public Task<UpdateResult> UpdateApplicationMedicalConditions(string applicationId, MedicalCondition payload);
         public Task<UpdateResult> UpdateApplicationAllergies(string applicationId, Allergy payload);
         public Task<UpdateResult> UpdateStudentProfile(string applicationId, StudentProfile payload);
@@ -262,6 +264,62 @@ namespace DayCare_ManagementSystem_API.Repositories
                 throw;
             }
         }
+
+        #endregion
+
+        #region [ Get MedicalCondition By Name ]
+
+        public async Task<MedicalCondition> GetMedicalConditionByName( string applicationId,string medicalCName)
+        {
+            try
+            {
+                var application = await _ApplicationCollection
+                    .Find(a => a.ApplicationId == applicationId)
+                    .FirstOrDefaultAsync();
+
+                if (application == null) return null;
+
+                var medicalCondition = application?.MedicalConditions.FirstOrDefault(a => a.Name == medicalCName);
+
+                if (medicalCondition == null) return null;
+
+                return medicalCondition;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                throw;
+            }
+        }
+
+
+        #endregion
+
+        #region [ Get Allergy By Name ]
+
+        public async Task<Allergy> GetAllergyByName(string applicationId, string allergyName)
+        {
+            try
+            {
+                var application = await _ApplicationCollection
+                    .Find(a => a.ApplicationId == applicationId)
+                    .FirstOrDefaultAsync();
+
+                if (application == null) return null;
+
+                var allergy = application?.Allergies.FirstOrDefault(a => a.Name == allergyName);
+
+                if (allergy == null) return null;
+
+                return allergy;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                throw;
+            }
+        }
+
 
         #endregion
 

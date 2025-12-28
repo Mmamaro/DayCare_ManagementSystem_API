@@ -13,6 +13,7 @@ services:
       - SchoolName=${SchoolName}
       - DefaultUser_Email=${DefaultUser_Email}
       - DefaultUser_Password=${DefaultUser_Password}
+      - DefaultUser_IdNumber=${DefaultUser_IdNumber}
       - EmailSender=${EmailSender}
       - EmailPassword=${EmailPassword}
       - SMTPServer=${SMTPServer}
