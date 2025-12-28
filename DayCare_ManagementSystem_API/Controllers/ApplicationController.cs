@@ -24,12 +24,14 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly ILogger<ApplicationController> _logger;
         private readonly DocumentsUploadService _documentUploadService;
         private readonly GeneralChecksHelper _generalChecksHelper;
-        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper)
+        private readonly IUser _userRepo;
+        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper, IUser userRepo)
         {
             _logger = logger;
             _applicationRepo = applicationRepo;
             _documentUploadService = documentUploadService;
             _generalChecksHelper = genralChecksHelper;
+            _userRepo = userRepo;
         }
 
         [HttpPost]
@@ -44,6 +46,15 @@ namespace DayCare_ManagementSystem_API.Controllers
                 if (tokenType.ToLower() != "access-token")
                 {
                     return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest( new {Message = "Invalid token" });
+
+                if (payload.NextOfKin.Any())
+                {
+                    if (!payload.NextOfKin.Any(x => x.IdNumber == user.IdNumber)) return BadRequest( new {Message = "Applying user must be part of NextOfKins"} );
                 }
 
                 var (isChildAgeAppropriate, errorMessage) = _generalChecksHelper.IsAgeAppropriate(payload.StudentProfile.DateOfBirth);
