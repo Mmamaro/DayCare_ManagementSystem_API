@@ -39,6 +39,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
+                var validSeverities = new List<string>() { "low", "medium", "high" };
 
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
@@ -52,12 +53,21 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (user == null) return BadRequest( new {Message = "Invalid token" });
 
-                if (payload.NextOfKin.Any())
+                var (isValidPeriod, message) = _generalChecksHelper.ValidApplicationPeriod(payload.EnrollmentYear);
+
+                if (!isValidPeriod) return BadRequest(new { Message = message }); 
+
+                if (payload.NextOfKins.Any())
                 {
-                    if (!payload.NextOfKin.Any(x => x.IdNumber == user.IdNumber)) return BadRequest( new {Message = "Applying user must be part of NextOfKins"} );
+                    if (payload.NextOfKins.Count > 2) return BadRequest(new {Message = "Child can only have 5 Next Of Kins"});
+                    if (!payload.NextOfKins.Any(x => x.IdNumber == user.IdNumber)) return BadRequest( new {Message = "Applying user must be part of NextOfKins"} );
                 }
 
-                var (isChildAgeAppropriate, errorMessage) = _generalChecksHelper.IsAgeAppropriate(payload.StudentProfile.DateOfBirth);
+                var doesDOBMatchId = _generalChecksHelper.DoesDobMatchIdNumber(payload.StudentProfile.IdNumber, payload.StudentProfile.DateOfBirth);
+
+                if (!doesDOBMatchId) return BadRequest(new { Message = "Date of birth and id number does not match" });
+
+                var (isChildAgeAppropriate, errorMessage) = _generalChecksHelper.IsAgeAppropriate(payload.EnrollmentYear, payload.StudentProfile.DateOfBirth);
 
                 if (!isChildAgeAppropriate) return BadRequest( new { Message = errorMessage });
 
@@ -65,7 +75,11 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (!isChildIdValid) return BadRequest(new { Message = $"child's Id Number is not a valid Id Number" });
 
-                foreach (var person in payload.NextOfKin)
+                var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(payload.MedicalConditions, payload.allergies);
+
+                if (!isValidSeverities) return BadRequest( new {Message = sevMessage});
+
+                foreach (var person in payload.NextOfKins)
                 {
 
                     var isValidId = _generalChecksHelper.IsValidIdNumber(person.IdNumber);
@@ -74,7 +88,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 }
 
-                if (_generalChecksHelper.HasDuplicateNames(payload.MedicalConditions, payload.allergies)) return Conflict(new {Message = "Duplicate Allergy or Medical Condition Name"});
+                if (_generalChecksHelper.HasDuplicateNames(payload.MedicalConditions, payload.allergies, payload.NextOfKins)) return Conflict(new {Message = "Duplicate Allergy or Medical Condition Name or NextOfKin Id Numbers"});
 
                 var applicationExists = await _applicationRepo.GetApplicationByStudentIdNumber(payload.StudentProfile.IdNumber);
 
@@ -83,22 +97,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Conflict(new {Message = "Application for this student already exists"});
                 }
 
-                var application = new Application()
-                {
-                    ApplicationId = ObjectId.GenerateNewId().ToString(),
-                    SubmittedAt = DateTime.UtcNow,
-                    SubmittedBy = tokenUserEmail,
-                    LastUpdatedAt = DateTime.UtcNow,
-                    Allergies = payload.allergies,
-                    EnrollmentYear = payload.EnrollmentYear,
-                    MedicalConditions = payload.MedicalConditions,
-                    NextOfKin = payload.NextOfKin,
-                    ApplicationStatus = "waiting",
-                    StudentProfile = payload.StudentProfile,
-                    AreDocumentsSubmitted = false
-                };
-
-                var result = await _applicationRepo.AddApplication(application);
+                var result = await _applicationRepo.AddApplication(payload, user.IdNumber);
 
                 if (result == null)
                 {
@@ -114,8 +113,53 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
+        [HttpGet("submittedby")]
+        public async Task<IActionResult> GetApplicationBySubmittedBy()
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
-        [HttpGet("{id:length(24)}")]
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+                var application = await _applicationRepo.GetApplicationBySubmittedBy(user.IdNumber);
+
+                if (application == null)
+                {
+                    return NotFound( new { Message = "No Application Related to you"});
+                }
+
+                var applicationDTO =  new ApplicationDTO()
+                {
+                    ApplicationId = application.ApplicationId,
+                    EnrollmentYear = application.EnrollmentYear,
+                    LastUpdatedAt = application.LastUpdatedAt,
+                    RejectionNotes = application.RejectionNotes,
+                    ApplicationStatus = application.ApplicationStatus,
+                    SubmittedAt = application.SubmittedAt,
+                    SubmittedBy = application.SubmittedBy
+                };
+
+
+                return Ok(applicationDTO);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the GetApplicationBySubmittedBy endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+        }
+
+        [HttpGet("{applicationId:length(24)}")]
         public async Task<IActionResult> GetApplicationById(string applicationId)
         {
             try
@@ -182,6 +226,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
+        [Authorize(Roles = "admin,staff")]
         [HttpPost("filters")]
         public async Task<IActionResult> GetApplicationByFilers(ApplicationFilters payload)
         {
@@ -212,17 +257,35 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-allergy")]
         public async Task<IActionResult> UpdateApplicationAllergies(string applicationId, Allergy allergy)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
+                }
+
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
                 }
 
                 var validAllergySeverities = new List<string>() { "low", "medium", "high" };
@@ -256,17 +319,34 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-medicalcondition")]
         public async Task<IActionResult> UpdateMedicalCondition(string applicationId, MedicalCondition medicalCondition)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
+                }
+
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
                 }
 
                 var validSeverities = new List<string>() { "low", "medium", "high" };
@@ -300,17 +380,34 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/update-nextofkin")]
         public async Task<IActionResult> UpdateApplicationNextOfKin(string applicationId, NextOfKin payload)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
+                }
+
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
                 }
 
                 var result = await _applicationRepo.UpdateNextOfKin(applicationId, payload);
@@ -338,6 +435,10 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var validStatuses = new List<string> { "waiting", "rejected", "accepted" };
 
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+
 
                 if (!validStatuses.Contains(payload.Status.ToLower()))
                 {
@@ -354,6 +455,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
+                }
+
+                var user = await _userRepo.GetUserById(tokenUserId);
+
+                if (application.SubmittedBy == user.IdNumber)
+                {
+                    return BadRequest(new { Message = "Staff cannot handle the Application of their own kids" });
                 }
 
                 var result = await _applicationRepo.UpdateStatus(applicationId, payload);
@@ -373,12 +481,24 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-medicalconditions")]
         public async Task<IActionResult> AddMedicalConditions(string applicationId, List<AddMedicalCondition> payload)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
@@ -386,7 +506,16 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Application Not Found" });
                 }
 
-                if (_generalChecksHelper.HasDuplicateNames(payload, null)) return Conflict(new { Message = "Duplicate Medical Condition Name in request payload" });
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+                }
+
+                var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(payload, new List<AddAllergy?>());
+
+                if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
+
+                if (_generalChecksHelper.HasDuplicateNames(payload, null, null)) return Conflict(new { Message = "Duplicate Medical Condition Name in request payload" });
 
                 foreach (var medicalC in payload)
                 {
@@ -411,12 +540,24 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-allergies")]
         public async Task<IActionResult> AddAllergies(string applicationId, List<AddAllergy> payload)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
@@ -424,7 +565,16 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Application Not Found" });
                 }
 
-                if (_generalChecksHelper.HasDuplicateNames(null, payload)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+                }
+
+                var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(new List<AddMedicalCondition?>(), payload);
+
+                if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
+
+                if (_generalChecksHelper.HasDuplicateNames(null, payload, null)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
 
                 foreach (var medicalC in payload)
                 {
@@ -450,18 +600,45 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpPatch("{applicationId:length(24)}/add-nextofkins")]
         public async Task<IActionResult> AddNextOfKins(string applicationId, List<AddNextOfKin> payload)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
 
                 if (application == null)
                 {
                     return NotFound(new { Message = "Application Not Found" });
                 }
+
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+                }
+
+                var nextOfKins = await _applicationRepo.GetNextOfKins(applicationId);
+
+                if (nextOfKins.Count + payload.Count > 5)
+                {
+                    return BadRequest(new { Message = $"A child can only have 5 next of kins there is {nextOfKins.Count} already added" });
+                }
+
+                if (_generalChecksHelper.HasDuplicateNames(new List<AddMedicalCondition?>(), new List<AddAllergy?>(), payload)) return Conflict(new { Message = "Has duplicates Next Of Kins" });
+
 
                 var result = await _applicationRepo.AddNextOfKins(payload, applicationId);
 
@@ -480,13 +657,30 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [Authorize(Roles = "admin,guardian")]
         [HttpDelete("{applicationId:length(24)}")]
         public async Task<IActionResult> DeleteApplication(string applicationId)
         {
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
                 var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot delete an application that does not belong to you." });
+                }
 
                 if(application == null)
                 {

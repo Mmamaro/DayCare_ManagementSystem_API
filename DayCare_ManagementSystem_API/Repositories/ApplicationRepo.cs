@@ -12,7 +12,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 {
     public interface IApplication
     {
-        public Task<Application> AddApplication(Application payload);
+        public Task<Application> AddApplication(ApplicationRequest payload, string SubmittedBy);
         public Task<UpdateResult> AddNextOfKins(List<AddNextOfKin> payload, string applicationId);
         public Task<UpdateResult> AddMedicalConditions(List<AddMedicalCondition> payload, string applicationId);
         public Task<UpdateResult> AddAllergies(List<AddAllergy> payload, string applicationId);
@@ -20,15 +20,18 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<DeleteResult> DeleteApplicationByNextOfKinIdNumber(string idNumber);
         public Task<List<Application>> GetAllApplications();
         public Task<Application> GetApplicationById(string id);
+        public Task<Application> GetApplicationBySubmittedBy(string SubmittedBy);
+        public Task<List<NextOfKin>> GetNextOfKins(string applicationId);
         public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
         public Task<Allergy> GetAllergyByName(string applicationId, string allergyName);
+        public Task<List<Application>> GetApplicationByFilters(ApplicationFilters payload);
         public Task<MedicalCondition> GetMedicalConditionByName(string applicationId, string medicalCName);
         public Task<UpdateResult> UpdateApplicationMedicalConditions(string applicationId, MedicalCondition payload);
         public Task<UpdateResult> UpdateApplicationAllergies(string applicationId, Allergy payload);
         public Task<UpdateResult> UpdateStudentProfile(string applicationId, StudentProfile payload);
         public Task<UpdateResult> UpdateNextOfKin(string applicationId, NextOfKin payload);
         public Task<UpdateResult> UpdateStatus(string applicationId, UpdateApplicationStatus payload);
-        public Task<List<Application>> GetApplicationByFilters(ApplicationFilters payload);
+        public Task<UpdateResult> UpdateSubmittedBy(string applicationId, string SubmittedBy);
         public Task<UpdateResult> UpdateAreDocumentsSubmitted(string studentIdNumber, bool isSubmitted);
 
     }
@@ -50,23 +53,81 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #region [ Add Application ]
 
-        public async Task<Application> AddApplication(Application payload)
+        public async Task<Application> AddApplication(ApplicationRequest payload, string submittedBy)
         {
             try
             {
-                foreach (var allergy in payload.Allergies)
+                var allergies = new List<Allergy>();
+                var nextOfKins = new List<NextOfKin>();
+                var medicalConditions = new List<MedicalCondition>();
+
+                if (payload.allergies != null)
                 {
-                    allergy.Severity = allergy.Severity.ToLower();
+                    foreach (var x in payload.allergies)
+                    {
+                        var allergy = new Allergy()
+                        {
+                            AllergyId = ObjectId.GenerateNewId().ToString(),
+                            Name = x.Name,
+                            Notes = x.Notes,
+                            Severity = x.Severity.ToLower()
+                        };
+
+                        allergies.Add(allergy);
+                    }
                 }
 
-                foreach (var medicalC in payload.MedicalConditions)
+                foreach (var x in payload.NextOfKins)
                 {
-                    medicalC.Severity = medicalC.Severity.ToLower();
+                    var nextOfKIn = new NextOfKin()
+                    {
+                        NextOfKinId = ObjectId.GenerateNewId().ToString(),
+                        Email = x.Email,
+                        FullName = x.FullName,
+                        IdNumber = x.IdNumber,
+                        PhoneNumber = x.PhoneNumber,
+                        Relationship = x.Relationship,
+                    };
+
+                    nextOfKins.Add(nextOfKIn);
                 }
 
-                await _ApplicationCollection.InsertOneAsync(payload);
+                if(payload.MedicalConditions != null)
+                {
+                    foreach (var x in payload.MedicalConditions)
+                    {
+                        var medicalC = new MedicalCondition()
+                        {
+                            MedicalConditionId = ObjectId.GenerateNewId().ToString(),
+                            Name = x.Name,
+                            Notes = x.Notes,
+                            Severity = x.Severity.ToLower()
+                        };
 
-                return payload;
+                        medicalConditions.Add(medicalC);
+                    }
+                }
+
+                payload.StudentProfile.StudentProfileId = ObjectId.GenerateNewId().ToString();
+
+                var application = new Application()
+                {
+                    ApplicationId = ObjectId.GenerateNewId().ToString(),
+                    SubmittedAt = DateTime.Now.AddHours(2),
+                    SubmittedBy = submittedBy,
+                    LastUpdatedAt = DateTime.Now.AddHours(2),
+                    Allergies = allergies,
+                    EnrollmentYear = payload.EnrollmentYear,
+                    MedicalConditions = medicalConditions,
+                    NextOfKins = nextOfKins,
+                    ApplicationStatus = "waiting",
+                    StudentProfile = payload.StudentProfile,
+                    AreDocumentsSubmitted = false
+                };
+
+                await _ApplicationCollection.InsertOneAsync(application);
+
+                return application;
 
             }
             catch (Exception ex)
@@ -106,8 +167,8 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Eq(a => a.ApplicationId, applicationId);
 
                 var update = Builders<Application>.Update
-                    .PushEach(a => a.NextOfKin, NextOfKins)
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                    .PushEach(a => a.NextOfKins, NextOfKins)
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -144,7 +205,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .PushEach(a => a.Allergies, Allergies)
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -181,7 +242,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .PushEach(a => a.MedicalConditions, medicalConditions)
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -217,7 +278,7 @@ namespace DayCare_ManagementSystem_API.Repositories
             try
             {
                 var filter = Builders<Application>.Filter.ElemMatch(
-                    a => a.NextOfKin,
+                    a => a.NextOfKins,
                     n => n.IdNumber == idNumber
                 );
 
@@ -256,6 +317,44 @@ namespace DayCare_ManagementSystem_API.Repositories
             try
             {
                 return await _ApplicationCollection.Find(c => c.ApplicationId == id).FirstOrDefaultAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get Application By SubmittedBy ]
+
+        public async Task<Application> GetApplicationBySubmittedBy(string SubmittedBy)
+        {
+            try
+            {
+                return await _ApplicationCollection.Find(c => c.SubmittedBy == SubmittedBy).FirstOrDefaultAsync();
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationBySubmittedBy method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get Application NextOfKins By Id ]
+
+        public async Task<List<NextOfKin>> GetNextOfKins(string applicationId)
+        {
+            try
+            {
+                var application = await _ApplicationCollection.Find(c => c.ApplicationId == applicationId).FirstOrDefaultAsync();
+
+                return application.NextOfKins;
 
             }
             catch (Exception ex)
@@ -358,12 +457,12 @@ namespace DayCare_ManagementSystem_API.Repositories
                 if (!string.IsNullOrWhiteSpace(payload.NextOfKinIdNumber))
                 {
                     filter &= builder.ElemMatch(
-                        a => a.NextOfKin,
+                        a => a.NextOfKins,
                         k => k.IdNumber == payload.NextOfKinIdNumber
                     );
                 }
 
-                if (!string.IsNullOrWhiteSpace(payload.EnrollmentYear))
+                if (payload.EnrollmentYear.HasValue)
                 {
                     filter &= builder.Eq(a => a.EnrollmentYear, payload.EnrollmentYear);
                 }
@@ -409,7 +508,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                 }
 
                 updates.Add(Builders<Application>.Update
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
 
                 var update = Builders<Application>.Update.Combine(updates);
 
@@ -426,6 +525,38 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #endregion
 
+        #region [ Update Application UpdateSubmittedBy ]
+
+        public async Task<UpdateResult> UpdateSubmittedBy(string applicationId, string SubmittedBy)
+        {
+            try
+            {
+                var filter = Builders<Application>.Filter
+                    .Eq(a => a.ApplicationId, applicationId);
+
+                var updates = new List<UpdateDefinition<Application>>();
+
+                updates.Add(Builders<Application>.Update
+                    .Set(a => a.SubmittedBy, SubmittedBy));
+
+                updates.Add(Builders<Application>.Update
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
+
+                var update = Builders<Application>.Update.Combine(updates);
+
+                return await _ApplicationCollection.UpdateOneAsync(filter, update);
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the UpdateSubmittedBy method.");
+                throw;
+            }
+        }
+
+        #endregion
+
         #region [ Update Application NextOfKin ]
 
         public async Task<UpdateResult> UpdateNextOfKin(string applicationId, NextOfKin payload)
@@ -435,7 +566,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var filter = Builders<Application>.Filter.And(
                     Builders<Application>.Filter.Eq(a => a.ApplicationId, applicationId),
                     Builders<Application>.Filter.ElemMatch(
-                        a => a.NextOfKin,
+                        a => a.NextOfKins,
                         k => k.NextOfKinId == payload.NextOfKinId
                     )
                 );
@@ -447,7 +578,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("NextOfKin.$.IdNumber", payload.IdNumber)
                         .Set("NextOfKin.$.PhoneNumber", payload.PhoneNumber)
                         .Set("NextOfKin.$.Email", payload.Email.ToLower())
-                        .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -503,7 +634,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set(a => a.StudentProfile.IdNumber, payload.IdNumber));
                 }
                 updates.Add(Builders<Application>.Update
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
 
                 var update = Builders<Application>.Update.Combine(updates);
 
@@ -538,7 +669,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("Allergies.$.Name", payload.Name)
                         .Set("Allergies.$.Severity", payload.Severity.ToLower())
                         .Set("Allergies.$.Notes", payload.Notes)
-                        .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -571,7 +702,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("MedicalConditions.$.Name", payload.Name)
                         .Set("MedicalConditions.$.Notes", payload.Notes)
                         .Set("MedicalConditions.$.Severity", payload.Severity)
-                        .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -596,7 +727,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .Set(a => a.AreDocumentsSubmitted, isSubmitted)
-                    .Set(a => a.LastUpdatedAt, DateTime.UtcNow);
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 

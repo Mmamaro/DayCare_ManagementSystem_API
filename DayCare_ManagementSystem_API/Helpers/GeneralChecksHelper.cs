@@ -43,8 +43,7 @@ namespace DayCare_ManagementSystem_API.Helpers
                 if (citizenship != '0' && citizenship != '1')
                     return false;
 
-                // 4. Luhn checksum
-                return PassesLuhnCheck(idNumber);
+                return true;
             }
             catch (Exception ex)
             {
@@ -53,42 +52,39 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
         }
 
-        private bool PassesLuhnCheck(string idNumber)
+        public bool DoesDobMatchIdNumber(string idNumber, string DOB)
         {
             try
             {
-                int sum = 0;
-                bool alternate = false;
+                if (string.IsNullOrWhiteSpace(idNumber))
+                    return false;
 
-                // Exclude last digit (checksum)
-                for (int i = idNumber.Length - 2; i >= 0; i--)
-                {
-                    int n = idNumber[i] - '0';
+                if (!DateTime.TryParse(DOB, out var dateOfBirth))
+                    return false;
 
-                    if (alternate)
-                    {
-                        n *= 2;
-                        if (n > 9)
-                            n -= 9;
-                    }
 
-                    sum += n;
-                    alternate = !alternate;
-                }
+                // Extract YYMMDD
+                var yy = int.Parse(idNumber.Substring(0, 2));
+                var mm = int.Parse(idNumber.Substring(2, 2));
+                var dd = int.Parse(idNumber.Substring(4, 2));
 
-                int checksum = (10 - (sum % 10)) % 10;
-                int lastDigit = idNumber[^1] - '0';
+                // Determine century
+                var currentYearTwoDigits = DateTime.Now.Year % 100;
+                var century = yy <= currentYearTwoDigits ? 2000 : 1900;
 
-                return checksum == lastDigit;
+                var dobFromId = new DateTime(century + yy, mm, dd);
+
+                return dobFromId.Date == dateOfBirth.Date;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the PassesLuhnCheck");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the DoesDobMatchIdNumber");
                 throw;
             }
         }
 
-        public (bool,string) IsAgeAppropriate(string DOB)
+
+        public (bool,string) IsAgeAppropriate(int enrollmentYear, string DOB)
         {
             try
             {
@@ -99,9 +95,7 @@ namespace DayCare_ManagementSystem_API.Helpers
                     return (false, "Invalid date format");
                 }
 
-                var today = DateTime.Today;
-
-                var age = today.Year - dateOfBirth.Year;
+                var age = enrollmentYear - dateOfBirth.Year;
 
                 if (age > appropriateAge)
                 {
@@ -128,7 +122,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the PassesLuhnCheck");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateAllergyNames");
                 throw;
             }
         } 
@@ -138,7 +132,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             try
             {
 
-                if (medicalConditions.Any())
+                if (medicalConditions != null)
                 {
                     var HasDuplicateMedicalCNames = medicalConditions
                     .GroupBy(a => a.Name.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -147,7 +141,7 @@ namespace DayCare_ManagementSystem_API.Helpers
                     if (HasDuplicateMedicalCNames) return true;
                 }
 
-                if (allergies.Any())
+                if (allergies != null)
                 {
                     var HasDuplicateAllergyNames = allergies
                     .GroupBy(a => a.Name.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -160,16 +154,16 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the PassesLuhnCheck");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames");
                 throw;
             }
         }
-        public bool HasDuplicateNames(List<AddMedicalCondition?> medicalConditions, List<AddAllergy?> allergies)
+        public bool HasDuplicateNames(List<AddMedicalCondition?> medicalConditions, List<AddAllergy?> allergies, List<AddNextOfKin?> nextOfKins)
         {
             try
             {
 
-                if (medicalConditions.Any())
+                if (medicalConditions != null)
                 {
                     var HasDuplicateMedicalCNames = medicalConditions
                     .GroupBy(a => a.Name.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -178,7 +172,7 @@ namespace DayCare_ManagementSystem_API.Helpers
                     if (HasDuplicateMedicalCNames) return true;
                 }
 
-                if (allergies.Any())
+                if (allergies != null)
                 {
                     var HasDuplicateAllergyNames = allergies
                     .GroupBy(a => a.Name.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -187,11 +181,89 @@ namespace DayCare_ManagementSystem_API.Helpers
                     if (HasDuplicateAllergyNames) return true;
                 }
 
+                if (nextOfKins != null)
+                {
+                    var HasDuplicateIdNumberss = nextOfKins
+                    .GroupBy(a => a.IdNumber.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Any(g => g.Count() > 1);
+
+                    if (HasDuplicateIdNumberss) return true;
+                }
+
                 return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the PassesLuhnCheck");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames");
+                throw;
+            }
+        }
+
+        public (bool,string) IsValidSeverity(List<AddMedicalCondition?> medicalConditions, List<AddAllergy?> allergies)
+        {
+            try
+            {
+
+                var validSeverities = new List<string>() { "low", "medium", "high" };
+
+
+                if (medicalConditions != null)
+                {
+                    foreach (var medicalC in medicalConditions)
+                    {
+                        if (!validSeverities.Contains(medicalC.Severity.ToLower()))
+                        {
+                            return (false, $"{medicalC.Name} has invalid severity. Valid Severities are: low, medium and high");
+                        }
+                    }
+                }
+                
+                if (allergies != null)
+                {
+                    foreach (var allergy in allergies)
+                    {
+                        if (!validSeverities.Contains(allergy.Severity.ToLower()))
+                        {
+                            return (false, $"{allergy.Name} has invalid severity. Valid Severities are: low, medium and high");
+                        }
+                    }
+                }
+
+                return (true,"success");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsValidSeverity");
+                throw;
+            }
+        }
+
+        public (bool,string) ValidApplicationPeriod(int enrollmentYear)
+        {
+            try
+            {
+
+                var dayOfApplication = DateTime.Now;
+                var monthOfApplication = dayOfApplication.Month;
+                var yearOfApplication = dayOfApplication.Year;
+                var followingYear = dayOfApplication.AddYears(1).Year;
+
+                if ((monthOfApplication == 1 || monthOfApplication == 2) && enrollmentYear == yearOfApplication)
+                {
+                    return (true, "can apply for the provided year");
+                }
+
+                if (monthOfApplication >= 9 && monthOfApplication <= 12 && enrollmentYear == followingYear)
+                {
+                    return (true, "can apply for the provided year");
+                }
+
+                return (false, "Cannot apply for the provided year during this time");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the ValidApplicationPeriod");
                 throw;
             }
         }
@@ -239,9 +311,13 @@ namespace DayCare_ManagementSystem_API.Helpers
                     {
                         return (409, "Id Number belongs to a different user");
                     }
+                    else
+                    {
+
+                    }
                 }
 
-                return (200, "Success");
+                    return (200, "Success");
             }
             catch (Exception ex)
             {

@@ -1,14 +1,15 @@
-﻿using DayCare_ManagementSystem_API.Repositories;
+﻿using DayCare_ManagementSystem_API.Helper;
+using DayCare_ManagementSystem_API.Helpers;
+using DayCare_ManagementSystem_API.Models;
+using DayCare_ManagementSystem_API.Models.DTOs;
+using DayCare_ManagementSystem_API.Repositories;
+using DayCare_ManagementSystem_API.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
-using DayCare_ManagementSystem_API.Helper;
-using DayCare_ManagementSystem_API.Models;
-using DayCare_ManagementSystem_API.Models.DTOs;
 using System.Security.Claims;
-using DayCare_ManagementSystem_API.Service;
-using DayCare_ManagementSystem_API.Helpers;
+using static QRCoder.PayloadGenerator;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
@@ -58,6 +59,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var Credentials = new Credentials()
                 {
                     Email = user.Email,
+                    IdNumber = user.IdNumber,
                     Firstname = user.Firstname,
                     Lastname = user.Lastname,
                     Role = user.Role,
@@ -85,11 +87,15 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var roles = new List<string>() { "staff", "admin", "guardian" };
 
+                var IsValidId = _generalChecksHelper.IsValidIdNumber(request.IdNumber);
+
+                if (!IsValidId) return BadRequest(new { Message = $"Id Number is not a valid Id Number" });
+
                 var EmailExists = await _userRepo.GetUserByEmail(request.Email);
 
                 if (EmailExists != null) return Conflict(new { Message = "Email belongs to someone else" });
 
-                var idNumberExists = await _userRepo.GetUserByEmail(request.Email);
+                var idNumberExists = await _userRepo.GetUserByIdNumber(request.IdNumber);
 
                 if (idNumberExists != null) return Conflict(new { Message = "Id Number belongs to someone else" });
 
@@ -102,6 +108,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 User user = new User
                 {
+                    IdNumber = request.IdNumber,
                     Firstname = request.Firstname,
                     Lastname = request.Lastname,
                     Email = request.Email.ToLower(),
@@ -158,9 +165,13 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var EmailExists = await _userRepo.GetUserByEmail(request.Email);
 
+                var IsValidId = _generalChecksHelper.IsValidIdNumber(request.IdNumber);
+
+                if (!IsValidId) return BadRequest(new { Message = $"Id Number is not a valid Id Number" });
+
                 if (EmailExists != null) return Conflict(new { Message = "Email belongs to someone else" });
 
-                var idNumberExists = await _userRepo.GetUserByEmail(request.Email);
+                var idNumberExists = await _userRepo.GetUserByIdNumber(request.IdNumber);
 
                 if (idNumberExists != null) return Conflict(new { Message = "Id Number belongs to someone else" });
 
@@ -175,10 +186,11 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 User user = new User
                 {
+                    IdNumber = request.IdNumber,
                     Firstname = request.Firstname,
                     Lastname = request.Lastname,
                     Email = request.Email.ToLower(),
-                    Password = request.Password,
+                    Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
                     Role = "guardian",
                     isMFAEnabled = false,
                     isFirstSignIn = true,
@@ -238,6 +250,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var usersDTO = users.Select(x => new UserDTO
                 {
                     Email = x.Email,
+                    IdNumber = x.IdNumber,
                     Firstname = x.Firstname,
                     Lastname = x.Lastname,
                     Role = x.Role,
@@ -282,6 +295,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var userDTO = new UserDTO()
                 {
                     Email = user.Email,
+                    IdNumber = user.IdNumber,
                     Firstname = user.Firstname,
                     Lastname = user.Lastname,
                     Role = user.Role,

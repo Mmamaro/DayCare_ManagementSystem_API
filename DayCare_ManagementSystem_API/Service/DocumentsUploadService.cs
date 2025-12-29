@@ -43,7 +43,7 @@ namespace DayCare_ManagementSystem_API.Service
                         StudentIdNumber = StudentIdNumber,
                         FileName = file.Name,
                         FilePath = filePath,
-                        UploadedAt = DateTime.UtcNow,
+                        UploadedAt = DateTime.Now.AddHours(2),
                     };
 
                     uploadedDocuments.Add(document);

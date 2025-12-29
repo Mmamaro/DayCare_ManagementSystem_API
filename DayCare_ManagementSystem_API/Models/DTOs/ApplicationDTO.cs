@@ -10,7 +10,7 @@ namespace DayCare_ManagementSystem_API.Models.DTOs
         public string? ApplicationId { get; set; }
         public string ApplicationStatus { get; set; }
         public string SubmittedBy { get; set; }
-        public string EnrollmentYear { get; set; }
+        public int EnrollmentYear { get; set; }
         public string RejectionNotes { get; set; }
         public DateTime SubmittedAt { get; set; }
         public DateTime LastUpdatedAt { get; set; }

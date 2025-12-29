@@ -223,11 +223,6 @@ namespace DayCare_ManagementSystem_API.Repositories
                     updateOperations.Add(update.Set(u => u.Active, payload.Active));
                 }
 
-                if (!string.IsNullOrWhiteSpace(payload.IdNumber))
-                {
-                    updateOperations.Add(update.Set(u => u.IdNumber, payload.IdNumber.ToLower()));
-                }
-
                 updateOperations.Add(update.Set(u => u.UpdatedAt, DateTime.Now.AddHours(2)));
 
                 var combinedUpdate = Builders<User>.Update.Combine(updateOperations);
@@ -274,11 +269,6 @@ namespace DayCare_ManagementSystem_API.Repositories
                 if (!string.IsNullOrWhiteSpace(payload.Email))
                 {
                     updateOperations.Add(update.Set(u => u.Email, payload.Email.ToLower()));
-                }
-
-                if (!string.IsNullOrWhiteSpace(payload.IdNumber))
-                {
-                    updateOperations.Add(update.Set(u => u.IdNumber, payload.IdNumber.ToLower()));
                 }
 
                 updateOperations.Add(update.Set(u => u.UpdatedAt, DateTime.Now.AddHours(2)));
