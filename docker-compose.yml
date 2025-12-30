@@ -5,6 +5,8 @@ services:
       context: .
       dockerfile: DayCare_ManagementSystem_API/Dockerfile
     container_name: daycaremanagementsystemapi
+    volumes:
+      - ${DocumentsFolder}:/app/Documents
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -28,7 +30,7 @@ services:
       - Jwt_Audience=${Jwt_Audience}
       - FrontEndBaseUrl=${FrontEndBaseUrl}
       - DbSettings__ApplicationsCollection=${DbSettings__ApplicationsCollection}
-      - DocumentsFolder=${DocumentsFolder}
+      - DocumentsFolder=/app/Documents
       - AppropriateStudentAge=${AppropriateStudentAge}
     depends_on:
         - mongo

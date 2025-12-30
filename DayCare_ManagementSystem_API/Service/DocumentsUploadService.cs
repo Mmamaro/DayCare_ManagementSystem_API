@@ -3,6 +3,7 @@ using DayCare_ManagementSystem_API.Repositories;
 using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Application = DayCare_ManagementSystem_API.Models.Application;
 
 namespace DayCare_ManagementSystem_API.Service
 {
@@ -10,14 +11,16 @@ namespace DayCare_ManagementSystem_API.Service
     {
         private readonly ILogger<DocumentsUploadService> _logger;
         private readonly IDocumentsMetaData _documentMetadataRepo;
+        private readonly IApplication _applicationRepo;
 
-        public DocumentsUploadService(IDocumentsMetaData repo, ILogger<DocumentsUploadService> logger)
+        public DocumentsUploadService(IDocumentsMetaData repo, ILogger<DocumentsUploadService> logger, IApplication applicationRepo)
         {
             _documentMetadataRepo = repo;
             _logger = logger;
+            _applicationRepo = applicationRepo;
         }
 
-        public async Task<bool> UploadDocuments(string StudentIdNumber, List<IFormFile> files)
+        public async Task<bool> UploadDocuments(Application application, string StudentIdNumber, List<IFormFile> files)
         {
             try
             {
@@ -31,7 +34,8 @@ namespace DayCare_ManagementSystem_API.Service
                     Directory.CreateDirectory(studentFolder);
                 }
 
-                foreach (var file in files)
+
+				foreach (var file in files)
                 {
                     string filePath = Path.Combine(studentFolder, $"{file.FileName}");
                     using var stream = new FileStream(filePath, FileMode.Create);
@@ -41,15 +45,21 @@ namespace DayCare_ManagementSystem_API.Service
                     {
                         Id = ObjectId.GenerateNewId().ToString(),
                         StudentIdNumber = StudentIdNumber,
-                        FileName = file.Name,
-                        FilePath = filePath,
+                        FileName = Path.GetFileName(filePath),
                         UploadedAt = DateTime.Now.AddHours(2),
+                        RelatedApplication = application.ApplicationId!
                     };
 
                     uploadedDocuments.Add(document);
                 }
 
-                await _documentMetadataRepo.AddManyDocumentMetaData(uploadedDocuments);
+                var isAdded = await _documentMetadataRepo.AddManyDocumentMetaData(uploadedDocuments);
+
+                if(isAdded == null) return false;
+
+                var isUpdated = await _applicationRepo.UpdateAreDocumentsSubmitted(StudentIdNumber, true);
+
+                if(isUpdated.ModifiedCount <= 0) return false;
 
                 return true;
 
@@ -61,7 +71,7 @@ namespace DayCare_ManagementSystem_API.Service
             }
         }
 
-        public async void DeleteStudentDocumentsFolder(string StudentIdNumber)
+        public async Task<DeleteResult> DeleteStudentDocumentsFolder(string StudentIdNumber)
         {
 
             try
@@ -74,7 +84,7 @@ namespace DayCare_ManagementSystem_API.Service
                     Directory.Delete(studentFolder, true);
                 }
 
-                await _documentMetadataRepo.DeleteManyDocumentsMetaData(StudentIdNumber);
+                return await _documentMetadataRepo.DeleteManyDocumentsMetaData(StudentIdNumber);
             }
             catch (Exception ex)
             {
@@ -83,16 +93,19 @@ namespace DayCare_ManagementSystem_API.Service
             }
         }
 
-        public async Task DeleteStudentDocument(string docId)
+        public async Task<DeleteResult> DeleteStudentDocument(string docId)
         {
 
             try
             {
-                var document = await _documentMetadataRepo.GetDocumentMetadataById(docId);
+                var doc = await _documentMetadataRepo.GetDocumentMetadataById(docId);
 
-                File.Delete(document.FilePath);
+				var basePath = Environment.GetEnvironmentVariable("DocumentsFolder")!;
+				var filePath = Path.Combine(basePath, doc.StudentIdNumber, doc.FileName);
 
-                await _documentMetadataRepo.DeleteDocumentMetaData(docId);
+				File.Delete(filePath);
+
+                return await _documentMetadataRepo.DeleteDocumentMetaData(docId);
 
             }
             catch (Exception ex)

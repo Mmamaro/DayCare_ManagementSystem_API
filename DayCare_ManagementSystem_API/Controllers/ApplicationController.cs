@@ -258,7 +258,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         }
 
         [HttpPatch("{applicationId:length(24)}/update-allergy")]
-        public async Task<IActionResult> UpdateApplicationAllergies(string applicationId, Allergy allergy)
+        public async Task<IActionResult> UpdateApplicationAllergy(string applicationId, Allergy payload)
         {
             try
             {
@@ -290,19 +290,23 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var validAllergySeverities = new List<string>() { "low", "medium", "high" };
 
-                if (!validAllergySeverities.Contains(allergy.Severity.ToLower()))
+                if (!validAllergySeverities.Contains(payload.Severity.ToLower()))
                 {
                     return BadRequest(new { Message = "Invalid severity" });
                 }
 
-                var allergyExists = await _applicationRepo.GetAllergyByName(applicationId, allergy.Name);
+                var allergyExists = await _applicationRepo.GetAllergyByName(applicationId, payload.Name);
 
-                if(allergyExists != null && allergy.AllergyId != allergyExists.AllergyId)
+                if(allergyExists != null && payload.AllergyId != allergyExists.AllergyId)
                 {
                     return Conflict(new {Message = "Allergy already exists in this application"});
                 }
 
-                var result = await _applicationRepo.UpdateApplicationAllergies(applicationId, allergy);
+                var exists = await _applicationRepo.GetAllergyById(applicationId, payload.AllergyId);
+
+                if (exists == null) return NotFound(new { Message = "Allergy not found" });
+
+                var result = await _applicationRepo.UpdateApplicationAllergies(applicationId, payload);
 
                 if (!result.IsAcknowledged)
                 {
@@ -320,7 +324,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         }
 
         [HttpPatch("{applicationId:length(24)}/update-medicalcondition")]
-        public async Task<IActionResult> UpdateMedicalCondition(string applicationId, MedicalCondition medicalCondition)
+        public async Task<IActionResult> UpdateMedicalCondition(string applicationId, MedicalCondition payload)
         {
             try
             {
@@ -351,21 +355,25 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var validSeverities = new List<string>() { "low", "medium", "high" };
 
-                if (!validSeverities.Contains(medicalCondition.Severity.ToLower()))
+                if (!validSeverities.Contains(payload.Severity.ToLower()))
                 {
                     return BadRequest(new { Message = "Invalid severity" });
                 }
 
-                var medicalConditionExists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalCondition.Name);
+                var medicalConditionExists = await _applicationRepo.GetMedicalConditionByName(applicationId, payload.Name);
 
-                if (medicalConditionExists != null && medicalConditionExists.MedicalConditionId != medicalConditionExists.MedicalConditionId)
+                if (medicalConditionExists != null && payload.MedicalConditionId != medicalConditionExists.MedicalConditionId)
                 {
-                    return Conflict(new { Message = "Medical Condition already exists in this application" });
+                    return Conflict(new { Message = "Medical Condition Name already exists in this application" });
                 }
 
-                var result = await _applicationRepo.UpdateApplicationMedicalConditions(applicationId, medicalCondition);
+                var exists = await _applicationRepo.GetMedicalConditionById(applicationId, payload.MedicalConditionId);
 
-                if (!result.IsAcknowledged)
+                if (exists == null) return NotFound(new { Message = "Medical condition not found" });
+
+                var result = await _applicationRepo.UpdateApplicationMedicalConditions(applicationId, payload);
+
+                if (result.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not update medical condition" });
                 }
@@ -457,6 +465,11 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Application Not Found" });
                 }
 
+                if (!application.AreDocumentsSubmitted)
+                {
+                    return BadRequest(new { Message = "Application with no documents cannot be accepted" });
+                }
+
                 var user = await _userRepo.GetUserById(tokenUserId);
 
                 if (application.SubmittedBy == user.IdNumber)
@@ -521,7 +534,10 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
 
-                    return Conflict(new { Message = "Medical Condition already exists on this application" });
+                    if (exists != null)
+                    {
+                        return Conflict(new { Message = "Medical Condition already exists on this application" });
+                    }
                 }
 
                 var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
@@ -576,11 +592,14 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (_generalChecksHelper.HasDuplicateNames(null, payload, null)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
 
-                foreach (var medicalC in payload)
+                foreach (var allergy in payload)
                 {
-                    var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
+                    var exists = await _applicationRepo.GetAllergyByName(applicationId, allergy.Name);
 
-                    return Conflict(new { Message = "Allergy already exists on this application" });
+                    if (exists != null)
+                    {
+                        return Conflict(new { Message = "Allergy already exists on this application" });
+                    }
                 }
 
                 var result = await _applicationRepo.AddAllergies(payload, applicationId);
@@ -705,6 +724,11 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
 
         }
+
+        //Todo
+        //Test updates and filters
+        //Test document uploads
+        //Add audits especially on Applications
 
     }
 }

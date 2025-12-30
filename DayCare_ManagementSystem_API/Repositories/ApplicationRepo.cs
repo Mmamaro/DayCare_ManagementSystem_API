@@ -26,6 +26,8 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<Allergy> GetAllergyByName(string applicationId, string allergyName);
         public Task<List<Application>> GetApplicationByFilters(ApplicationFilters payload);
         public Task<MedicalCondition> GetMedicalConditionByName(string applicationId, string medicalCName);
+        public Task<MedicalCondition> GetMedicalConditionById(string applicationId, string medicalCId);
+        public Task<Allergy> GetAllergyById(string applicationId, string allergyId);
         public Task<UpdateResult> UpdateApplicationMedicalConditions(string applicationId, MedicalCondition payload);
         public Task<UpdateResult> UpdateApplicationAllergies(string applicationId, Allergy payload);
         public Task<UpdateResult> UpdateStudentProfile(string applicationId, StudentProfile payload);
@@ -68,7 +70,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         var allergy = new Allergy()
                         {
                             AllergyId = ObjectId.GenerateNewId().ToString(),
-                            Name = x.Name,
+                            Name = x.Name.ToLower(),
                             Notes = x.Notes,
                             Severity = x.Severity.ToLower()
                         };
@@ -99,7 +101,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         var medicalC = new MedicalCondition()
                         {
                             MedicalConditionId = ObjectId.GenerateNewId().ToString(),
-                            Name = x.Name,
+                            Name = x.Name.ToLower(),
                             Notes = x.Notes,
                             Severity = x.Severity.ToLower()
                         };
@@ -192,7 +194,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                     var allergy = new Allergy()
                     {
                         AllergyId = ObjectId.GenerateNewId().ToString(),
-                        Name = x.Name,
+                        Name = x.Name.ToLower(),
                         Notes = x.Notes,
                         Severity = x.Severity.ToLower(),
                     };
@@ -230,7 +232,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                     {
                         Severity = x.Severity.ToLower(),
                         Notes  = x.Notes,
-                        Name = x.Name,
+                        Name = x.Name.ToLower(),
                         MedicalConditionId = ObjectId.GenerateNewId().ToString(),
                     };
 
@@ -378,7 +380,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 if (application == null) return null;
 
-                var medicalCondition = application?.MedicalConditions.FirstOrDefault(a => a.Name == medicalCName);
+                var medicalCondition = application?.MedicalConditions.FirstOrDefault(a => a.Name == medicalCName.ToLower());
 
                 if (medicalCondition == null) return null;
 
@@ -386,7 +388,35 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                _logger.LogError(ex, "Error in the Application repo in the GetMedicalConditionByName method.");
+                throw;
+            }
+        }
+
+
+        #endregion
+
+        #region [ Get MedicalCondition By Id ]
+
+        public async Task<MedicalCondition> GetMedicalConditionById(string applicationId, string medicalCId)
+        {
+            try
+            {
+                var application = await _ApplicationCollection
+                    .Find(a => a.ApplicationId == applicationId)
+                    .FirstOrDefaultAsync();
+
+                if (application == null) return null;
+
+                var medicalCondition = application?.MedicalConditions.FirstOrDefault(a => a.MedicalConditionId == medicalCId);
+
+                if (medicalCondition == null) return null;
+
+                return medicalCondition;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetMedicalConditionById method.");
                 throw;
             }
         }
@@ -406,7 +436,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 if (application == null) return null;
 
-                var allergy = application?.Allergies.FirstOrDefault(a => a.Name == allergyName);
+                var allergy = application?.Allergies.FirstOrDefault(a => a.Name == allergyName.ToLower());
 
                 if (allergy == null) return null;
 
@@ -414,7 +444,35 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                _logger.LogError(ex, "Error in the Application repo in the GetAllergyByName method.");
+                throw;
+            }
+        }
+
+
+        #endregion
+
+        #region [ Get Allergy By Name ]
+
+        public async Task<Allergy> GetAllergyById(string applicationId, string allergyId)
+        {
+            try
+            {
+                var application = await _ApplicationCollection
+                    .Find(a => a.ApplicationId == applicationId)
+                    .FirstOrDefaultAsync();
+
+                if (application == null) return null;
+
+                var allergy = application?.Allergies.FirstOrDefault(a => a.AllergyId == allergyId);
+
+                if (allergy == null) return null;
+
+                return allergy;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetAllergyById method.");
                 throw;
             }
         }
@@ -625,7 +683,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                 if (!string.IsNullOrEmpty(payload.Gender))
                 {
                     updates.Add(Builders<Application>.Update
-                        .Set(a => a.StudentProfile.Gender, payload.Gender));
+                        .Set(a => a.StudentProfile.Gender, payload.Gender.ToLower()));
                 }
 
                 if (!string.IsNullOrEmpty(payload.IdNumber))
@@ -666,7 +724,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
 
                 var update = Builders<Application>.Update
-                        .Set("Allergies.$.Name", payload.Name)
+                        .Set("Allergies.$.Name", payload.Name.ToLower())
                         .Set("Allergies.$.Severity", payload.Severity.ToLower())
                         .Set("Allergies.$.Notes", payload.Notes)
                         .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
@@ -699,7 +757,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                 );
 
                 var update = Builders<Application>.Update
-                        .Set("MedicalConditions.$.Name", payload.Name)
+                        .Set("MedicalConditions.$.Name", payload.Name.ToLower())
                         .Set("MedicalConditions.$.Notes", payload.Notes)
                         .Set("MedicalConditions.$.Severity", payload.Severity)
                         .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
