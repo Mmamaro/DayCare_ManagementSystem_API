@@ -297,7 +297,7 @@ namespace DayCare_ManagementSystem_API.Helpers
 
                         var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
 
-                        if (mfaUpdated.IsAcknowledged == false)
+                        if (mfaUpdated.ModifiedCount <= 0)
                         {
                             _logger.LogError("Could not update mfa fields");
                             return (400, "Could not update mfa fields");

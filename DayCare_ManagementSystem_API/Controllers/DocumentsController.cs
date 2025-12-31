@@ -228,15 +228,14 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
-                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
-
-                var application = await _applicationRepo.GetApplicationByStudentIdNumber(studentIdNumber);
-                int countMatches = 0;
-
                 if (tokenType != "access-token")
                 {
                     return Unauthorized(new { Message = "Invalid token" });
                 }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                var application = await _applicationRepo.GetApplicationByStudentIdNumber(studentIdNumber);
 
                 var checkIfThereIsDocs = await _documentsMRepo.GetAllDocumentsMetadataByStudentIdNumber(studentIdNumber);
 
@@ -274,8 +273,6 @@ namespace DayCare_ManagementSystem_API.Controllers
                 _logger.LogError(ex, "Error in the DocumentsController in the GetDocumentsById endpoint");
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
-
-            //Test delete
         }
     }
 }

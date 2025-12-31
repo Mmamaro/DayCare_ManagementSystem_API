@@ -9,7 +9,7 @@
         margin: 0 auto; 
         background-color: #ffffff; 
         padding: 60px; 
-        border-top: 3px solid #333333; /* Clean dark accent */
+        border-top: 3px solid #333333;
         box-shadow: 0 10px 30px rgba(0,0,0,0.05);
     }
     .school-name { 
@@ -47,12 +47,27 @@
             </div>
             
             <div class="message">
-                Hi {{ParentName}},<br><br>
-                Your application for <strong>{{ChildName}}</strong> has been received and feedback will be provided soon.
+                Dear {{ParentName}},<br><br>
+
+                Thank you for your application for the enrolment of <strong>{{ChildName}}</strong> at
+                {{School Name}} for the <strong>{{EnrolmentYear}}</strong> academic year.<br><br>
+
+                At this stage, the application is <strong>unable to proceed to acceptance</strong> due to the
+                following reason(s):<br><br>
+
+                <strong>Application feedback:</strong><br>
+                {{RejectionReason}}<br><br>
+
+                Please note that this outcome is <strong>not necessarily final</strong>. In certain cases,
+                applications may be reconsidered once outstanding requirements have been addressed or additional
+                information has been provided.<br><br>
+
+                We encourage you to review your application on the portal and make the necessary updates where
+                applicable.
             </div>
 
             <div class="footer-line">
-                OFFICIAL NOTIFICATION
+                OFFICIAL APPLICATION UPDATE
             </div>
         </div>
     </div>

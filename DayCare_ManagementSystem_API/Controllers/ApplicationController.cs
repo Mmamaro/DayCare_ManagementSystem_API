@@ -308,7 +308,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.UpdateApplicationAllergies(applicationId, payload);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0) 
                 {
                     return BadRequest( new {Message = "Could not update allergy"} );
                 }
@@ -420,7 +420,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.UpdateNextOfKin(applicationId, payload);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not update medical condition" });
                 }
@@ -465,7 +465,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Application Not Found" });
                 }
 
-                if (!application.AreDocumentsSubmitted)
+                if (payload.Status == "accepted" && !application.AreDocumentsSubmitted)
                 {
                     return BadRequest(new { Message = "Application with no documents cannot be accepted" });
                 }
@@ -479,7 +479,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.UpdateStatus(applicationId, payload);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not update Application Status" });
                 }
@@ -542,7 +542,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not add medical conditions to application" });
                 }
@@ -604,7 +604,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.AddAllergies(payload, applicationId);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0) 
                 {
                     return BadRequest(new { Message = "Could not add allergies to application" });
                 }
@@ -661,7 +661,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.AddNextOfKins(payload, applicationId);
 
-                if (!result.IsAcknowledged)
+                if (result.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not add NextOfKins to application" });
                 }
@@ -708,12 +708,12 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var result = await _applicationRepo.DeleteApplication(applicationId);
 
-                if (!result.IsAcknowledged)
+                if (result.DeletedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not delete application" });
                 }
 
-                _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
+                await _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
 
                 return Ok(new { Message = "Delete successful" });
             }
@@ -729,6 +729,7 @@ namespace DayCare_ManagementSystem_API.Controllers
         //Test updates and filters
         //Test document uploads
         //Add audits especially on Applications
+        //Test delete
 
     }
 }

@@ -154,7 +154,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                     var mfaFieldUpdate = await _userRepo.UpdateMFAfields(mfaFieldsModel);
 
-                    if (mfaFieldUpdate.IsAcknowledged == false)
+                    if (mfaFieldUpdate.ModifiedCount <= 0)
                     {
                         _logger.LogError("Could not update mfa fields");
                         return BadRequest(new { Message = "Could set up MFA" });
@@ -223,7 +223,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     {
                         var isUpdated = await _userRepo.updateFirstSignIn(user.Email);
 
-                        if (isUpdated.IsAcknowledged == false)
+                        if (isUpdated.ModifiedCount <= 0)
                         {
                             return BadRequest(new { Messaage = "Could not update mfa fields" });
                         }
@@ -382,7 +382,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isUpdated = await _userRepo.updatePassword(request);
 
-                if (isUpdated.IsAcknowledged == false)
+                if (isUpdated.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not change password" });
                 }

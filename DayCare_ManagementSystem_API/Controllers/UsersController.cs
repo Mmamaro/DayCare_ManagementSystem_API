@@ -354,7 +354,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isUpdated = await _userRepo.UpdateStaff(id, payload);
 
-                if (isUpdated.IsAcknowledged == false)
+                if (isUpdated.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not update user" });
                 }
@@ -402,8 +402,8 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isUpdated = await _userRepo.UpdateUser(id, payload);
 
-                if (isUpdated.IsAcknowledged == false)
-                {
+                if (isUpdated.ModifiedCount <= 0)
+                {   
                     return BadRequest(new { Message = "Could not update user" });
                 }
 
@@ -456,7 +456,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                     var mfaUpdated = await _userRepo.UpdateMFAfields(mfaFieldsModel);
 
-                    if (mfaUpdated.IsAcknowledged == false)
+                    if (mfaUpdated.ModifiedCount <= 0)
                     {
                         _logger.LogError("Could not update mfa fields");
                         return BadRequest(new { Message = "Could not update user" });
@@ -465,7 +465,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isUpdated = await _userRepo.EnableMFA(id, payload.enable);
 
-                if (isUpdated.IsAcknowledged == false)
+                if (isUpdated.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not update MFA" });
                 }
@@ -503,14 +503,14 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isDeleted = await _userRepo.DeleteUser(id);
 
-                if (isDeleted.IsAcknowledged == false)
+                if (isDeleted.DeletedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not delete user" });
                 }
 
                 var isApplicationDeleted = await _applicationRepo.GetApplicationByStudentIdNumber(user.IdNumber);
 
-                if (isDeleted.IsAcknowledged == false)
+                if (isDeleted.DeletedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not delete application associated with deleted user" });
                 }

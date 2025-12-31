@@ -22,6 +22,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<Application> GetApplicationById(string id);
         public Task<Application> GetApplicationBySubmittedBy(string SubmittedBy);
         public Task<List<NextOfKin>> GetNextOfKins(string applicationId);
+        public Task<NextOfKin> GetNextOfKinByIdNumber(string idNumber);
         public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
         public Task<Allergy> GetAllergyByName(string applicationId, string allergyName);
         public Task<List<Application>> GetApplicationByFilters(ApplicationFilters payload);
@@ -357,6 +358,28 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var application = await _ApplicationCollection.Find(c => c.ApplicationId == applicationId).FirstOrDefaultAsync();
 
                 return application.NextOfKins;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the GetApplicationById method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get NextOfKin By IdNumber ]
+
+        public async Task<NextOfKin> GetNextOfKinByIdNumber(string idNumber)
+        {
+            try
+            {
+                var application = await _ApplicationCollection.Find(c => c.SubmittedBy == idNumber).FirstOrDefaultAsync();
+
+                var person = application.NextOfKins.Where(x => x.IdNumber == idNumber).FirstOrDefault();
+
+                return person;
 
             }
             catch (Exception ex)
