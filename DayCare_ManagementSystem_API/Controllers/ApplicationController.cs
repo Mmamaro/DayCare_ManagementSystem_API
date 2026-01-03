@@ -25,13 +25,15 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly DocumentsUploadService _documentUploadService;
         private readonly GeneralChecksHelper _generalChecksHelper;
         private readonly IUser _userRepo;
-        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper, IUser userRepo)
+        private readonly EmailService _emailService;
+        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper, IUser userRepo, EmailService emailService)
         {
             _logger = logger;
             _applicationRepo = applicationRepo;
             _documentUploadService = documentUploadService;
             _generalChecksHelper = genralChecksHelper;
             _userRepo = userRepo;
+            _emailService = emailService;
         }
 
         [HttpPost]
@@ -104,6 +106,15 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Failed to add application" });
                 }
 
+                var path = $"./Templates/ApplicationReceived.html";
+                var template = System.IO.File.ReadAllText(path).Replace("\n", "");
+
+                template = template.Replace("{{ParentName}}", user.Firstname + " " + user.Lastname)
+                                   .Replace("{{ChildName}}", payload.StudentProfile.FirstName + " " + payload.StudentProfile.LastName);
+                List<string> receipient = new List<string> { user.Email };
+
+                string response = await _emailService.SendTemplateEmail(receipient, "Application Received", template);
+
                 return Ok(new { Message = "Success" });
             }
             catch (Exception ex)
@@ -113,8 +124,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [HttpGet("submittedby")]
-        public async Task<IActionResult> GetApplicationBySubmittedBy()
+        [HttpGet("submittedby/{submittedby}")]
+        public async Task<IActionResult> GetApplicationBySubmittedBy(string submittedby)
         {
             try
             {
@@ -242,7 +253,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var documents = await _applicationRepo.GetApplicationByFilters(payload);
 
-                if (documents == null)
+                if (documents.Count() <= 0)
                 {
                     return NotFound(new { Messagee = "Your filters did not return any data" });
                 }
@@ -441,11 +452,11 @@ namespace DayCare_ManagementSystem_API.Controllers
         {
             try
             {
-                var validStatuses = new List<string> { "waiting", "rejected", "accepted" };
+                var validStatuses = new List<string> {"rejected", "accepted" };
 
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
-                var tokenUserId = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
 
                 if (!validStatuses.Contains(payload.Status.ToLower()))
@@ -471,11 +482,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                 }
 
                 var user = await _userRepo.GetUserById(tokenUserId);
+     
 
                 if (application.SubmittedBy == user.IdNumber)
                 {
                     return BadRequest(new { Message = "Staff cannot handle the Application of their own kids" });
                 }
+
 
                 var result = await _applicationRepo.UpdateStatus(applicationId, payload);
 
@@ -483,6 +496,36 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     return BadRequest(new { Message = "Could not update Application Status" });
                 }
+
+                var guardian = await _userRepo.GetUserByIdNumber(application.SubmittedBy);
+                string path = string.Empty;
+                string template = string.Empty;
+
+                if (payload.Status == "accepted")
+                {
+                    path = $"./Templates/Acceptance.html";
+                    template = System.IO.File.ReadAllText(path).Replace("\n", "");
+
+                    template = template.Replace("{{ParentName}}", user.Firstname + " " + user.Lastname)
+                        .Replace("{{ChildName}}", application.StudentProfile.FirstName + " " + application.StudentProfile.LastName)
+                          .Replace("{{EnrolmentYear}}", application.EnrollmentYear.ToString());
+
+                }else
+                {
+                    path = $"./Templates/Rejection.html";
+                    template = System.IO.File.ReadAllText(path).Replace("\n", "");
+
+                    template = template.Replace("{{ParentName}}", guardian.Firstname + " " + guardian.Lastname)
+                                        .Replace("{{ChildName}}", application.StudentProfile.FirstName + " " + application.StudentProfile.LastName)
+                                          .Replace("{{EnrolmentYear}}", application.EnrollmentYear.ToString())
+                                         .Replace("{{RejectionReason}}", application.RejectionNotes);
+                }
+
+
+
+                List<string> receipient = new List<string> { guardian.Email };
+
+                await _emailService.SendTemplateEmail(receipient, "Application Feedback", template);
 
                 return Ok(new { Message = "Update successful" });
             }
@@ -726,10 +769,9 @@ namespace DayCare_ManagementSystem_API.Controllers
         }
 
         //Todo
-        //Test updates and filters
-        //Test document uploads
         //Add audits especially on Applications
-        //Test delete
+        //Fix and test dates
+        //Test application delete
 
     }
 }

@@ -530,9 +530,20 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var builder = Builders<Application>.Filter;
                 var filter = builder.Empty;
 
+                //var startDateUtc = DateTime.SpecifyKind(payload.Start, DateTimeKind.Utc);
+                //var endDateUtc = DateTime.SpecifyKind(payload.End, DateTimeKind.Utc);
+
+                //filter &= builder.Gte(a => a.SubmittedAt, startDateUtc)
+                //                & builder.Lte(a => a.SubmittedAt, endDateUtc);
+
                 if (!string.IsNullOrWhiteSpace(payload.StudentIdNumber))
                 {
                     filter &= builder.Eq(a => a.StudentProfile.IdNumber, payload.StudentIdNumber);
+                }
+
+                if (!string.IsNullOrWhiteSpace(payload.Status))
+                {
+                    filter &= builder.Eq(a => a.ApplicationStatus, payload.Status.ToLower());
                 }
 
                 if (!string.IsNullOrWhiteSpace(payload.NextOfKinIdNumber))
