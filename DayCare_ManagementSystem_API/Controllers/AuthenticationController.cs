@@ -154,7 +154,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                     var mfaFieldUpdate = await _userRepo.UpdateMFAfields(mfaFieldsModel);
 
-                    if (mfaFieldUpdate.IsAcknowledged == false)
+                    if (mfaFieldUpdate.ModifiedCount <= 0)
                     {
                         _logger.LogError("Could not update mfa fields");
                         return BadRequest(new { Message = "Could set up MFA" });
@@ -223,7 +223,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     {
                         var isUpdated = await _userRepo.updateFirstSignIn(user.Email);
 
-                        if (isUpdated.IsAcknowledged == false)
+                        if (isUpdated.ModifiedCount <= 0)
                         {
                             return BadRequest(new { Messaage = "Could not update mfa fields" });
                         }
@@ -327,7 +327,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var subject = "Forgot Password Request {{School Name}} Portal";
 
 
-                var emailResponse = await _emailService.SendTemplateEmail(recipients, subject, template);
+                var emailResponse = await _emailService.SendTemplateEmail(recipients, "Forgot password", template);
 
                 if (emailResponse.ToLower() != "sent")
                 {
@@ -382,7 +382,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var isUpdated = await _userRepo.updatePassword(request);
 
-                if (isUpdated.IsAcknowledged == false)
+                if (isUpdated.ModifiedCount <= 0)
                 {
                     return BadRequest(new { Message = "Could not change password" });
                 }
@@ -392,14 +392,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                 string baseUrl = Environment.GetEnvironmentVariable("FrontEndBaseUrl")!;
                 var url = $"{baseUrl}/auth/change-password?token={token}&email={user.Email}";
                 var recipients = new List<string>() { user.Email };
-                var subject = "Change Password Confirmation For Connect Network Services Quote Tool";
                 var path = $"./Templates/changed-password.html";
                 var template = System.IO.File.ReadAllText(path).Replace("\n", "");
 
                 template = template.Replace("{{NAME}}", user.Firstname)
                            .Replace("{{LOGIN_LINK}}", url);
 
-                var emailResponse = await _emailService.SendTemplateEmail(recipients, subject, template);
+                var emailResponse = await _emailService.SendTemplateEmail(recipients, "Password changed successfully", template);
 
                 if (emailResponse.ToLower() != "sent")
                 {

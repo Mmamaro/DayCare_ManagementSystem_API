@@ -34,6 +34,7 @@ namespace DayCare_ManagementSystem_API.Services
                 var email = Environment.GetEnvironmentVariable("DefaultUser_Email");
                 var userExists = await _userRepo.GetUserByEmail(email);
                 var password = Environment.GetEnvironmentVariable("DefaultUser_Password");
+                var idNumber = Environment.GetEnvironmentVariable("DefaultUser_IdNumber");
 
                 if (userExists == null)
                 {
@@ -42,6 +43,7 @@ namespace DayCare_ManagementSystem_API.Services
                     {
                         Firstname = "Paballo",
                         Lastname = "Mmamaro",
+                        IdNumber = idNumber,
                         Email = email.ToLower(),
                         Password = BCrypt.Net.BCrypt.HashPassword(password),
                         Role = "admin",

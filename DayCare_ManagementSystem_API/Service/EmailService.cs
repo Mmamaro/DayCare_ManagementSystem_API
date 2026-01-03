@@ -36,7 +36,7 @@ namespace DayCare_ManagementSystem_API.Service
                 {
                     From = new MailAddress(smtpUsernameEmail),
                     Subject = subject,
-                    Body = htmlbody.Replace("{{{{School Name}}}}", schoolName),
+                    Body = htmlbody.Replace("{{School Name}}", schoolName),
                     IsBodyHtml = true
                 };
 

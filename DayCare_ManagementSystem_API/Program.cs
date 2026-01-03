@@ -1,5 +1,6 @@
 
 using DayCare_ManagementSystem_API.Helper;
+using DayCare_ManagementSystem_API.Helpers;
 using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
@@ -102,10 +103,15 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<SeedDbService>();
             builder.Services.AddSingleton<EmailService>();
             builder.Services.AddSingleton<IUser, UserRepo>();
+            builder.Services.AddSingleton<IApplication, ApplicationRepo>();
             builder.Services.AddSingleton<MFAService>();
             builder.Services.AddSingleton<TokensHelper>();
             builder.Services.AddSingleton<IToken, TokenService>();
             builder.Services.AddSingleton<IRefreshToken, RefreshTokenRepo>();
+            builder.Services.AddSingleton<IApplication, ApplicationRepo>();
+            builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
+            builder.Services.AddSingleton<DocumentsUploadService>();
+            builder.Services.AddSingleton<GeneralChecksHelper>();
 
             #endregion
 

@@ -97,7 +97,7 @@ namespace DayCare_ManagementSystem_API.Service
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(claims),
-                    IssuedAt = DateTime.UtcNow,
+                    IssuedAt = DateTime.Now.AddHours(2),
                     Issuer = Environment.GetEnvironmentVariable("Jwt_Issuer"),
                     Expires = DateTime.Now.AddHours(1),
                     SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
