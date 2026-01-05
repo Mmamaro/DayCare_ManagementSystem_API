@@ -197,7 +197,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [HttpGet("allergies/{StudentId:length(24)}")]
+        [HttpGet("{StudentId:length(24)}/allergies")]
         public async Task<IActionResult> GetStudentAllergies(string StudentId)
         {
             try
@@ -225,7 +225,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [HttpGet("medicalconditions/{StudentId:length(24)}")]
+        [HttpGet("{StudentId:length(24)}/medicalconditions/")]
         public async Task<IActionResult> GetStudentMedicalConditions(string StudentId)
         {
             try
@@ -253,7 +253,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [HttpGet("nextofkin/{StudentId:length(24)}/{kinIdNumber:length(24)}")]
+        [HttpGet("{StudentId:length(24)}/nextofkin/{kinIdNumber}")]
         public async Task<IActionResult> GetNextOfKinByIdNumber(string StudentId, string kinIdNumber)
         {
             try
@@ -281,7 +281,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
         
-        [HttpGet("nextofkins/{StudentId:length(24)}/{kinIdNumber:length(24)}")]
+        [HttpGet("{StudentId:length(24)}/nextofkins")]
         public async Task<IActionResult> GetStudentNextOfKins(string StudentId)
         {
             try
