@@ -19,7 +19,9 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<List<NextOfKin>> GetNextOfKins(string StudentId);
         public Task<List<Allergy>> GetAllergies(string StudentId);
         public Task<List<MedicalCondition>> GetMedicalConditions(string StudentId);
-        public Task<NextOfKin> GetNextOfKinByIdNumber(string StudentId, string idNumber);
+        public Task<List<Student>> GetStudentsByKinIdNumber(string kinIdNumber);
+        public Task<List<Student>> GetStudentsByKinId(string kinId);
+        public Task<NextOfKin> GetNextOfKinByIdNumber(string StudentId, string kinIdNumber);
         public Task<Allergy> GetAllergyByName(string StudentId, string allergyName);
         public Task<MedicalCondition> GetMedicalConditionByName(string StudentId, string medicalCName);
         public Task<MedicalCondition> GetMedicalConditionById(string StudentId, string medicalCId);
@@ -233,6 +235,48 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #endregion
 
+        #region [ Get Students By KinIdNumber ]
+
+        public async Task<List<Student>> GetStudentsByKinIdNumber(string kinIdNumber)
+        {
+            try
+            {
+
+                var filter = Builders<Student>.Filter
+                    .ElemMatch(s => s.NextOfKins, k => k.IdNumber == kinIdNumber);
+
+                return await _studentsCollections.Find(filter).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Student repo in the GetStudentsByKinIdNumber method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get Students By KinId ]
+
+        public async Task<List<Student>> GetStudentsByKinId(string kinId)
+        {
+            try
+            {
+
+                var filter = Builders<Student>.Filter
+                    .ElemMatch(s => s.NextOfKins, k => k.NextOfKinId == kinId);
+
+                return await _studentsCollections.Find(filter).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Student repo in the GetStudentsByKinId method.");
+                throw;
+            }
+        }
+
+        #endregion
+
         #region [ Get Student NextOfKins By Id ]
 
         public async Task<List<NextOfKin>> GetNextOfKins(string StudentId)
@@ -242,6 +286,28 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var Student = await _studentsCollections.Find(c => c.StudentId == StudentId).FirstOrDefaultAsync();
 
                 return Student.NextOfKins;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Student repo in the GetNextOfKins method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Get Student NextOfKin By Id Number ]
+
+        public async Task<NextOfKin> GetNextOfKinByIdNumber(string StudentId, string kinIdNumber)
+        {
+            try
+            {
+                var Student = await _studentsCollections.Find(c => c.StudentId == StudentId).FirstOrDefaultAsync();
+
+                var nextOfkin = Student.NextOfKins.FirstOrDefault( x => x.IdNumber == kinIdNumber );
+
+                return nextOfkin;
 
             }
             catch (Exception ex)
@@ -286,34 +352,6 @@ namespace DayCare_ManagementSystem_API.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the Student repo in the GetMedicalConditions method.");
-                throw;
-            }
-        }
-
-        #endregion
-
-        #region [ Get NextOfKin By IdNumber ]
-
-        public async Task<NextOfKin> GetNextOfKinByIdNumber(string StudentId, string idNumber)
-        {
-            try
-            {
-                var Student = await _studentsCollections
-                    .Find(a => a.StudentId == StudentId)
-                    .FirstOrDefaultAsync();
-
-                if (Student == null) return null;
-
-                var nextOfKin = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == idNumber);
-
-                if (nextOfKin == null) return null;
-
-                return nextOfKin;
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in the Student repo in the GetNextOfKinByIdNumber method.");
                 throw;
             }
         }

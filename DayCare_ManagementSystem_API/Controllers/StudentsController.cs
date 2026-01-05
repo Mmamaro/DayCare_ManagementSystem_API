@@ -309,6 +309,98 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
+        [HttpGet("studentsbykinidnumber/{studentIdNumber}")]
+        public async Task<IActionResult> GetStudentsBykinIdNumber(string studentIdNumber)
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var students = await _studentRepo.GetStudentsByKinIdNumber(studentIdNumber);
+
+                if (students == null)
+                {
+                    return NotFound();
+                }
+
+                var StudentDTO = students.Select(x => new StudentDTO
+                {
+                    Age = _generalChecksHelper.GetAge(x.StudentProfile.DateOfBirth),
+                    DateOfBirth = x.StudentProfile.DateOfBirth,
+                    FirstName = x.StudentProfile.FirstName,
+                    LastName = x.StudentProfile.LastName,
+                    Gender = x.StudentProfile.Gender,
+                    IdNumber = x.StudentProfile.IdNumber,
+                    IsActive = x.IsActive,
+                    LastUpdatedAt = x.LastUpdatedAt,
+                    RegisteredAt = x.RegisteredAt,
+                    StudentId = x.StudentId,
+                    Allergies = x.Allergies.Count(),
+                    MedicalConditions = x.MedicalConditions.Count()
+                });
+
+                var orderedStudents = StudentDTO.OrderByDescending(x => x.Age).ToList();
+
+                return Ok(orderedStudents);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the StudentController in the GetStudentsByIdNumber endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+        }
+
+        [HttpGet("studentsbykinid/{kinId:length(24)}")]
+        public async Task<IActionResult> GetStudentsBykinId(string kinId)
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var students = await _studentRepo.GetStudentsByKinId(kinId);
+
+                if (students == null)
+                {
+                    return NotFound();
+                }
+
+                var StudentDTO = students.Select(x => new StudentDTO
+                {
+                    Age = _generalChecksHelper.GetAge(x.StudentProfile.DateOfBirth),
+                    DateOfBirth = x.StudentProfile.DateOfBirth,
+                    FirstName = x.StudentProfile.FirstName,
+                    LastName = x.StudentProfile.LastName,
+                    Gender = x.StudentProfile.Gender,
+                    IdNumber = x.StudentProfile.IdNumber,
+                    IsActive = x.IsActive,
+                    LastUpdatedAt = x.LastUpdatedAt,
+                    RegisteredAt = x.RegisteredAt,
+                    StudentId = x.StudentId,
+                    Allergies = x.Allergies.Count(),
+                    MedicalConditions = x.MedicalConditions.Count()
+                });
+
+                var orderedStudents = StudentDTO.OrderByDescending(x => x.Age).ToList();
+
+                return Ok(orderedStudents);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the StudentController in the GetStudentsBykinId endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+        }
+
         [HttpPatch("{StudentId:length(24)}/update-allergy")]
         public async Task<IActionResult> UpdateStudentAllergy(string StudentId, Allergy payload)
         {
