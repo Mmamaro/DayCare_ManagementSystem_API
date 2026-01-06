@@ -7,21 +7,22 @@ namespace DayCare_ManagementSystem_API.Models.ValueObjects
     public class NextOfKin
     {
         [BsonId]
+        [StringLength(24, MinimumLength = 24)]
         [BsonRepresentation(BsonType.ObjectId)]
         public string? NextOfKinId { get; set; }
 
-        public string IdNumber { get; set; }
-
         [StringLength(13, MinimumLength = 13)]
-        public string FullName { get; set; }
+        public required string IdNumber { get; set; }
 
-        public string Relationship { get; set; }
+        public required string FullName { get; set; }
+
+        public required string Relationship { get; set; }
 
         [StringLength(10, MinimumLength = 10)]
 
-        public string PhoneNumber { get; set; }
+        public required string PhoneNumber { get; set; }
 
-        public string Email { get; set; }
+        public required string Email { get; set; }
     }
 
     public class AddNextOfKin

@@ -109,6 +109,7 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<IToken, TokenService>();
             builder.Services.AddSingleton<IRefreshToken, RefreshTokenRepo>();
             builder.Services.AddSingleton<IApplication, ApplicationRepo>();
+            builder.Services.AddSingleton<IStudent, StudentRepo>();
             builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
             builder.Services.AddSingleton<DocumentsUploadService>();
             builder.Services.AddSingleton<GeneralChecksHelper>();

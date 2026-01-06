@@ -97,19 +97,53 @@ namespace DayCare_ManagementSystem_API.Helpers
                     return (false, "Invalid date format");
                 }
 
-                var age = enrollmentYear - dateOfBirth.Year;
+                var enrollmentDate = new DateTime(enrollmentYear, 1, 1);
 
-                if (age > appropriateAge)
+                if (dateOfBirth > enrollmentDate)
+                {
+                    return (false, "Date of birth cannot be after the enrollment date.");
+                }
+
+                var totalDays = (enrollmentDate.Date - dateOfBirth.Date).Days;
+
+                // Convert days to years (leap-year safe)
+                var ageInYears = (int)(totalDays / 365.2425);
+
+                if (ageInYears > appropriateAge)
                 {
                     return (false, "Child is above acceptable age.");
                 }
 
-
-                return (true, "age is appropriate");
+                return (true, "Age is appropriate.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsAgeAppropriate");
+                throw;
+            }
+        }
+
+        public int GetAge(string DOB)
+        {
+            try
+            {
+
+                var today = DateTime.Today;
+
+                DateTime.TryParse(DOB, out var dateOfBirth);
+
+
+                var totalDays = (today.Date - dateOfBirth.Date).Days;
+
+                // Convert days to years (leap-year safe)
+                var ageInYears = (int)(totalDays / 365.2425);
+
+
+                return ageInYears;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the GetAge");
                 throw;
             }
         }
