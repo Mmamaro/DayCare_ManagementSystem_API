@@ -13,6 +13,7 @@ using System.Security.Claims;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
+    [Authorize]
     [Route("api/students")]
     [ApiController]
     public class StudentsController : ControllerBase
@@ -868,4 +869,6 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
     }
+
+    //test all the updates
 }

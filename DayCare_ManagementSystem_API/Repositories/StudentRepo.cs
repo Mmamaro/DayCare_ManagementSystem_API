@@ -530,11 +530,11 @@ namespace DayCare_ManagementSystem_API.Repositories
 
 
                 var update = Builders<Student>.Update
-                        .Set("NextOfKin.$.FullName", payload.FullName)
-                        .Set("NextOfKin.$.Relationship", payload.Relationship)
-                        .Set("NextOfKin.$.IdNumber", payload.IdNumber)
-                        .Set("NextOfKin.$.PhoneNumber", payload.PhoneNumber)
-                        .Set("NextOfKin.$.Email", payload.Email.ToLower())
+                        .Set("NextOfKins.$.FullName", payload.FullName)
+                        .Set("NextOfKins.$.Relationship", payload.Relationship)
+                        .Set("NextOfKins.$.IdNumber", payload.IdNumber)
+                        .Set("NextOfKins.$.PhoneNumber", payload.PhoneNumber)
+                        .Set("NextOfKins.$.Email", payload.Email.ToLower())
                         .Set(a => a.LastUpdatedAt, DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _studentsCollections.UpdateOneAsync(filter, update);
