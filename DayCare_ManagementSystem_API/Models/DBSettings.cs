@@ -9,5 +9,7 @@
         public string ConnectionString { get; set; }
         public string DatabaseName { get; set; }
         public string StudentsCollection { get; set; }
+        public string maintenanceCollection { get; set; }
+        public string DropOffPickUpEventsCollection { get; set; }
     }
 }
