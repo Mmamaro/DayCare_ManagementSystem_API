@@ -1,12 +1,11 @@
-﻿
-using DayCare_ManagementSystem_API.Models;
+﻿using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using static QRCoder.PayloadGenerator;
 
-namespace ccod_voyc_integration_workerservice.Services
+namespace DayCare_ManagementSystem_API.Services
 {
     public class PickUpWorkerService : BackgroundService
     {
@@ -17,6 +16,7 @@ namespace ccod_voyc_integration_workerservice.Services
         private int count;
         private int hour;
         private int minutes;
+        private DateOnly lastEmailSentDate;
         TimeOnly runtime = new TimeOnly();
 
         public PickUpWorkerService(ILogger<PickUpWorkerService> logger, IStudent studetRepo, IEvent eventRepo, EmailService emailService)
@@ -33,11 +33,9 @@ namespace ccod_voyc_integration_workerservice.Services
             while (!stoppingToken.IsCancellationRequested)
             {
 
-                //var tokens = await _voycService.GetTokens();
-
                 var delay = GetWaitTime();
 
-                _logger.LogInformation($"Next run is at: {DateTime.Now.Add(delay).AddHours(2)}");
+                _logger.LogInformation($"PickUpWorkerService Next run is at: {DateTime.Now.Add(delay).AddHours(2)}");
 
                 if (delay.TotalMinutes > 0)
                 {
@@ -53,45 +51,56 @@ namespace ccod_voyc_integration_workerservice.Services
                 var filter = new EventFilter()
                 {
                     EndDate = DateTime.Today.AddHours(17),
-                    StartDate = DateTime.Today.AddHours(08)
+                    StartDate = DateTime.Today
                 };
 
                 var events = await _eventRepo.GetEventsByFilters(filter);
 
                 var groupedEvents = events.GroupBy(x => x.StudentId);
 
-                if (groupedEvents.Any())
+                var today = DateOnly.FromDateTime(DateTime.Today);
+
+                if(lastEmailSentDate != today)
                 {
-                    foreach (var group in groupedEvents)
+                    if (groupedEvents.Any())
                     {
-                        if(group.Count() < 2)
+                        foreach (var group in groupedEvents)
                         {
-
-                            var firstEvent = group.First();
-
-                            var student = await _studetRepo.GetStudentById(firstEvent.StudentId);
-
-                            if ( student != null)
+                            if (group.Count() < 2)
                             {
-                                var baseUrl = Environment.GetEnvironmentVariable("FrontEndBaseUrl")!;
-                                var url = $"{baseUrl}/auth";
-                                var path = $"./Templates/PickUpNotification.html";
-                                var template = System.IO.File.ReadAllText(path).Replace("\n", "");
 
-                                template = template.Replace("{{StudentName}}", student.StudentProfile.FirstName + " " +
-                                            student.StudentProfile.LastName);
+                                var firstEvent = group.First();
 
-                                var receipients = student.NextOfKins.Select(x => x.Email).ToList(); ;
+                                var student = await _studetRepo.GetStudentById(firstEvent.StudentId);
 
-                                await _emailService.SendTemplateEmail(receipients, "Pickup Notification", template);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Student returned empty in the PickUpWorkerService and this is not supposed to happen.");
+                                if (student != null && student.IsActive == true)
+                                {
+                                    var baseUrl = Environment.GetEnvironmentVariable("FrontEndBaseUrl")!;
+                                    var url = $"{baseUrl}/auth";
+                                    var path = $"./Templates/PickUpNotification.html";
+                                    var template = System.IO.File.ReadAllText(path).Replace("\n", "");
+
+                                    template = template.Replace("{{StudentName}}", student.StudentProfile.FirstName + " " +
+                                                student.StudentProfile.LastName);
+
+                                    var receipients = student.NextOfKins.Select(x => x.Email).ToList();
+
+                                    await _emailService.SendTemplateEmail(receipients, "Pickup Notification", template);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Student returned empty in the PickUpWorkerService and this is not supposed to happen.");
+                                }
                             }
                         }
+
+                        _logger.LogInformation($"PickUpWorkerService Finished running at: {DateTime.Now.AddHours(2)}");
                     }
+
+                    lastEmailSentDate = today;
                 }
+
+
             }
         }
 

@@ -1,5 +1,4 @@
-﻿
-using DayCare_ManagementSystem_API.Models;
+﻿using DayCare_ManagementSystem_API.Models;
 using DayCare_ManagementSystem_API.Repositories;
 using DayCare_ManagementSystem_API.Service;
 using Microsoft.AspNetCore.Mvc.DataAnnotations;
@@ -10,16 +9,16 @@ using System.Runtime;
 using System.Runtime.CompilerServices;
 using static QRCoder.PayloadGenerator;
 
-namespace ccod_voyc_integration_workerservice.Services
+namespace DayCare_ManagementSystem_API.Services
 {
     public class DBCleanUpWorkerService : BackgroundService
     {
         private readonly IMongoDatabase _database;
         IOptions<DBSettings> _Dbsettings;
-        private readonly ILogger<PickUpWorkerService> _logger;
+        private readonly ILogger<DBCleanUpWorkerService> _logger;
         private readonly IMaintenance _maintenanceRepo;
 
-        public DBCleanUpWorkerService(IOptions<DBSettings> Dbsettings, ILogger<PickUpWorkerService> logger, IMongoClient client, IMaintenance maintenanceRepo)
+        public DBCleanUpWorkerService(IOptions<DBSettings> Dbsettings, ILogger<DBCleanUpWorkerService> logger, IMongoClient client, IMaintenance maintenanceRepo)
         {
             _Dbsettings = Dbsettings;
             _database = client.GetDatabase(_Dbsettings.Value.DatabaseName);

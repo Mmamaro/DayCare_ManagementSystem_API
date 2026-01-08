@@ -11,5 +11,6 @@
         public string StudentsCollection { get; set; }
         public string maintenanceCollection { get; set; }
         public string DropOffPickUpEventsCollection { get; set; }
+        public string UserAuditCollection { get; set; }
     }
 }

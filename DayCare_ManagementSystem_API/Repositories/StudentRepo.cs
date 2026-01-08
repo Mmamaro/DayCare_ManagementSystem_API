@@ -30,7 +30,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> UpdateStudentAllergies(string StudentId, Allergy payload);
         public Task<UpdateResult> UpdateStudentProfile(string StudentId, StudentProfile payload);
         public Task<UpdateResult> UpdateNextOfKin(string StudentId, NextOfKin payload);
-        public Task<UpdateResult> UpdateIsActive(string StudentId, bool isActive);
+        public Task<UpdateResult> UpdateIsActive(UpdateIsActive payload);
     }
     public class StudentRepo : IStudent
     {
@@ -490,16 +490,16 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #region [ Update Student IsActive ]
 
-        public async Task<UpdateResult> UpdateIsActive(string StudentId, bool isActive)
+        public async Task<UpdateResult> UpdateIsActive(UpdateIsActive payload)
         {
             try
             {
                 var filter = Builders<Student>.Filter
-                    .Eq(a => a.StudentId, StudentId);
+                    .Eq(a => a.StudentId, payload.StudentId);
 
                 var update = Builders<Student>.Update
-                    .Set(a => a.IsActive, isActive)
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+                    .Set(a => a.IsActive, payload.IsActive)
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _studentsCollections.UpdateOneAsync(filter, update);
 

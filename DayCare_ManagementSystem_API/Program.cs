@@ -1,5 +1,3 @@
-
-using ccod_voyc_integration_workerservice.Services;
 using DayCare_ManagementSystem_API.Helper;
 using DayCare_ManagementSystem_API.Helpers;
 using DayCare_ManagementSystem_API.Models;
@@ -115,6 +113,8 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<IStudent, StudentRepo>();
             builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
             builder.Services.AddSingleton<IMaintenance, MaintenanceRepo>();
+            builder.Services.AddSingleton<IUserAudit, UserAuditRepo>();
+            builder.Services.AddSingleton<IEvent, DropOffPickUpEventRepo>();
             builder.Services.AddSingleton<DocumentsUploadService>();
             builder.Services.AddSingleton<GeneralChecksHelper>();
 

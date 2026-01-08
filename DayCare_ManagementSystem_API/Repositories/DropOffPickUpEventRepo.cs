@@ -127,7 +127,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         {
             try
             {
-                return await _eventsCollection.Find(x => x.StudentId == id).ToListAsync();
+                return await _eventsCollection.Find(x => x.NextOfKinId == id).ToListAsync();
             }
             catch (Exception ex)
             {

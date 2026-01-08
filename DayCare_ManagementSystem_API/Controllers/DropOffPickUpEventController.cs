@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using System.Security.Claims;
+using static QRCoder.PayloadGenerator;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
@@ -16,15 +17,18 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly IEvent _eventRepo;
         private readonly IStudent _studentRepo;
         private readonly ILogger<DropOffPickUpEventController> _logger;
-        public DropOffPickUpEventController(IEvent eventRepo, IStudent studentRepo, 
-            ILogger<DropOffPickUpEventController> logger)
+        private readonly IUserAudit _userAudit;
+
+        public DropOffPickUpEventController(IEvent eventRepo, IStudent studentRepo,
+            ILogger<DropOffPickUpEventController> logger, IUserAudit userAudit)
         {
             _eventRepo = eventRepo;
             _studentRepo = studentRepo;
             _logger = logger;
+            _userAudit = userAudit;
         }
 
-        [Authorize("admin,staff")]
+        [Authorize(Roles = "admin,staff")]
         [HttpPost]
         public async Task<IActionResult> AddEvent(AddEvent payload)
         {
@@ -47,6 +51,8 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (studentExists == null) return NotFound( new { Messaage = "Student does not exist" } );
 
+                if (studentExists.IsActive == false) return BadRequest(new { Messaage = "Student is not active" });
+
                 var kinExists = studentExists.NextOfKins.Where(x => x.NextOfKinId == payload.NextOfKinId).FirstOrDefault();
 
                 if (kinExists == null) return NotFound(new { Messaage = "Kin not related to student" });
@@ -59,33 +65,33 @@ namespace DayCare_ManagementSystem_API.Controllers
                     {
                         var filter = new EventFilter()
                         {
-                            EndDate = DateTime.Today.AddDays(-1).AddHours(17),
-                            StartDate = DateTime.Today.AddDays(-1).AddHours(08),
+                            StartDate = DateTime.Today.AddDays(-1),
+                            EndDate = DateTime.Now,
                             EventType = "pickup",
                             StudentId = payload.StudentId,
                         };
 
                         var filterResult = await _eventRepo.GetEventsByFilters(filter);
 
-                        if (filterResult == null) return BadRequest(new { Messaage = "Student was never picked up." });
+                        if (filterResult.Count() == 0) return BadRequest(new { Messaage = "Student was never picked up, cannot add a dropoff." });
                     }
                     else
                     {
                         var filter = new EventFilter()
                         {
+                            StartDate = DateTime.Today,
                             EndDate = DateTime.Today.AddHours(17),
-                            StartDate = DateTime.Today.AddHours(08),
                             EventType = "dropoff",
                             StudentId = payload.StudentId,
                         };
 
                         var filterResult = await _eventRepo.GetEventsByFilters(filter);
 
-                        if (filterResult == null) return BadRequest(new { Messaage = "Student was never dropped off." });
+                        if (filterResult.Count() == 0) return BadRequest(new { Messaage = "Student was never dropped off, cannot add a pickup." });
                     }
                 }
 
-                if(payload.EventType.ToLower() == "pickup") return BadRequest(new { Messaage = "First student event cannot be a pickup." });
+                if(payload.EventType.ToLower() == "pickup" && droppedOffBefore.Count < 1) return BadRequest(new { Messaage = "First student event cannot be a pickup." });
 
                 var dropOffPickup = new DropOffPickUpEvent()
                 {
@@ -104,6 +110,8 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (isAdded == null) return BadRequest(new { Message = "Coud not add event." });
 
+                await _userAudit.AddAudit(tokenId, tokenUserEmail, "write", $"Added {payload.EventType} event for {payload.StudentId}");
+
                 return Ok(new { Message = "Event added successfully" });
 
             }
@@ -114,7 +122,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize("admin,staff")]
+        [Authorize(Roles = "admin,staff")]
         [HttpGet]
         public async Task<IActionResult> GetAllEvents()
         {
@@ -131,7 +139,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize("admin,staff")]
+        [Authorize(Roles = "admin,staff")]
         [HttpGet("{id:length(24)}")]
         public async Task<IActionResult> GetEventById(string id)
         {
@@ -171,7 +179,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var dropOffPickup = await _eventRepo.GetEventsByKinId(kinId);
 
-                if (dropOffPickup == null) return NotFound(new { Message = "No events for this id" });
+                if (dropOffPickup.Count() == 0) return NotFound(new { Message = "No events for this id" });
 
                 return Ok(dropOffPickup);
             }
@@ -199,7 +207,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var dropOffPickup = await _eventRepo.GetEventsByStudentId(studentId);
 
-                if (dropOffPickup == null) return NotFound(new { Message = "No events for this id" });
+                if (dropOffPickup.Count() == 0) return NotFound(new { Message = "No events for this id" });
 
                 return Ok(dropOffPickup);
             }
@@ -210,8 +218,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize("admin,staff")]
-        [HttpGet("filters")]
+        [Authorize(Roles = "admin,staff")]
+        [HttpPost("filters")]
         public async Task<IActionResult> GetEventsByFilters(EventFilter payload)
         {
             try
@@ -228,7 +236,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var dropOffPickup = await _eventRepo.GetEventsByFilters(payload);
 
-                if (dropOffPickup == null) return NotFound(new { Message = "filters returned no data" });
+                if (dropOffPickup.Count() == 0) return NotFound(new { Message = "filters returned no data" });
 
                 return Ok(dropOffPickup);
             }
@@ -262,6 +270,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 var result = await _eventRepo.DeleteEvent(id);
 
                 if (result.DeletedCount <= 0) return BadRequest( new {Message = "Could not delete event"} );
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "delete", $"Deleted this Event");
 
                 return Ok( new { Message = "Delete successful"});
             }

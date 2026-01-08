@@ -7,7 +7,7 @@ services:
     container_name: daycaremanagementsystemapi
     volumes:
       - C:\DayCareAppDocuments:/app/Documents
-      - C:\Logs:C:\Logs 
+      - C:\Logs:/app/Logs 
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -30,14 +30,15 @@ services:
       - DbSettings__StudentsCollection=Students
       - DbSettings__DropOffPickUpEventsCollection=DropOffPickUpEvents
       - DbSettings__maintenanceCollection=maintenance
+      - DbSettings__UserAuditCollection=UserAudits
       - Jwt_Key=${Jwt_Key}
       - Jwt_Issuer=${Jwt_Issuer}
       - Jwt_Audience=${Jwt_Audience}
       - FrontEndBaseUrl=https://localhost:80
       - AppropriateStudentAge=5
       - MaxStudentsAllowed=2
-      - PickUpWorkerRunHour=17
-      - PickUpWokerRunMinutes=00 
+      - PickUpWorkerRunHour=13
+      - PickUpWokerRunMinutes=09
     depends_on:
         - mongo
 
