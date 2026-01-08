@@ -27,10 +27,13 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly TokensHelper _tokensHelper;
         private readonly IRefreshToken _refreshTokenRepo;
         private readonly PasswordHelper _passwordHelper;
- #region [ Constructor ]
+        private readonly IUserAudit _userAudit;
+
+
+        #region [ Constructor ]
         public AuthenticationController(ILogger<AuthenticationController> logger, IUser userRepo, EmailService emailService,
-            MFAService mfaService, IToken tokenService, IConfiguration config,TokensHelper tokensHelper, 
-            IRefreshToken refreshTokenRepo, PasswordHelper passwordHelper)
+            MFAService mfaService, IToken tokenService, IConfiguration config, TokensHelper tokensHelper,
+            IRefreshToken refreshTokenRepo, PasswordHelper passwordHelper, IUserAudit userAudit)
         {
 
 
@@ -43,6 +46,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             _tokensHelper = tokensHelper;
             _refreshTokenRepo = refreshTokenRepo;
             _passwordHelper = passwordHelper;
+            _userAudit = userAudit;
         }
         #endregion
 
@@ -338,6 +342,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not send email" });
                 }
 
+                await _userAudit.AddAudit(user.Id!, user.Email, "forgot-password", $"Requested to change password");
+
                 return Accepted(new { Message = "Email sent" });
 
             }
@@ -409,6 +415,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not send email" });
                 }
 
+                await _userAudit.AddAudit(tokenUserId, user.Email, "update", $"Updated their password");
 
                 return Accepted(new { Messsage = "Password has been changed" });
 

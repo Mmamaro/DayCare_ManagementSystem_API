@@ -24,8 +24,9 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly EmailService _emailService;
         private readonly IApplication _applicationRepo;
         private readonly GeneralChecksHelper _generalChecksHelper;
+        private readonly IUserAudit _userAudit;
 
-        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService, IApplication applicationRepo, GeneralChecksHelper generalChecksHelper)
+        public UsersController(ILogger<UsersController> logger, IUser userRepo, PasswordHelper passwordHelper, EmailService emailService, IApplication applicationRepo, GeneralChecksHelper generalChecksHelper, IUserAudit userAudit)
         {
             _logger = logger;
             _userRepo = userRepo;
@@ -33,6 +34,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             _emailService = emailService;
             _applicationRepo = applicationRepo;
             _generalChecksHelper = generalChecksHelper;
+            _userAudit = userAudit;
         }
 
         #region [ Me ]
@@ -85,6 +87,15 @@ namespace DayCare_ManagementSystem_API.Controllers
 
             try
             {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid);
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+
+                if (tokenType != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
                 var roles = new List<string>() { "staff", "admin", "guardian" };
 
                 var IsValidId = _generalChecksHelper.IsValidIdNumber(request.IdNumber);
@@ -141,6 +152,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 List<string> receipient = new List<string>{ user.Email };
 
                 string response = await _emailService.SendTemplateEmail(receipient, "Account Created", template);
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "creaatee", $"Added staff member: {isUserAdded.Id}");
 
                 return Ok(new { Message = "User added successfully" });
 
@@ -219,6 +232,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 List<string> receipient = new List<string> { user.Email };
 
                 string response = await _emailService.SendTemplateEmail(receipient, "Account Created", template);
+
+                await _userAudit.AddAudit(isUserAdded.Id, isUserAdded.Email, "write", $"Registered to the system");
 
                 return Ok(new { Message = "User added successfully" });
 
@@ -325,6 +340,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var validRoles = new List<string>() { "user", "admin" };
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType != "access-token")
                 {
@@ -358,6 +375,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     return BadRequest(new { Message = "Could not update user" });
                 }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated staff member profile: {id}");
 
                 return Ok(new { Messagee = "User updated successfully" });
             }
@@ -406,6 +425,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {   
                     return BadRequest(new { Message = "Could not update user" });
                 }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"updated their profile");
 
                 return Ok(new { Messagee = "User updated successfully" });
             }
@@ -470,6 +491,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update MFA" });
                 }
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Enabled/Disabled their MFA");
+
                 return Ok(new { Messagee = "MFA is updated successfully" });
             }
             catch (Exception ex)
@@ -488,6 +511,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             try
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType != "access-token")
                 {
@@ -514,6 +539,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     return BadRequest(new { Message = "Could not delete application associated with deleted user" });
                 }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "delete", $"deleted user: {id}");
 
                 return Ok(new { Message = "User deleted successfully" });
             }

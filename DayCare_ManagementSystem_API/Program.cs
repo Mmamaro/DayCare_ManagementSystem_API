@@ -1,4 +1,3 @@
-
 using DayCare_ManagementSystem_API.Helper;
 using DayCare_ManagementSystem_API.Helpers;
 using DayCare_ManagementSystem_API.Models;
@@ -99,6 +98,8 @@ namespace DayCare_ManagementSystem_API
 
             builder.Services.AddSingleton<EmailService>();
             builder.Services.AddHostedService<SeedWorkerService>();
+            builder.Services.AddHostedService<PickUpWorkerService>();
+            builder.Services.AddHostedService<DBCleanUpWorkerService>();
             builder.Services.AddSingleton<PasswordHelper>();
             builder.Services.AddSingleton<SeedDbService>();
             builder.Services.AddSingleton<EmailService>();
@@ -111,6 +112,9 @@ namespace DayCare_ManagementSystem_API
             builder.Services.AddSingleton<IApplication, ApplicationRepo>();
             builder.Services.AddSingleton<IStudent, StudentRepo>();
             builder.Services.AddSingleton<IDocumentsMetaData, DocumentsMetadataRepo>();
+            builder.Services.AddSingleton<IMaintenance, MaintenanceRepo>();
+            builder.Services.AddSingleton<IUserAudit, UserAuditRepo>();
+            builder.Services.AddSingleton<IEvent, DropOffPickUpEventRepo>();
             builder.Services.AddSingleton<DocumentsUploadService>();
             builder.Services.AddSingleton<GeneralChecksHelper>();
 

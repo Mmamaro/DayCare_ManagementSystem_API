@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 
 namespace DayCare_ManagementSystem_API.Controllers
@@ -19,13 +20,15 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly DocumentsUploadService _documentUploadService;
         private readonly ILogger<DocumentsController> _logger;
         private readonly IUser _userRepo;
-        public DocumentsController(IDocumentsMetaData documentsMRepo, IApplication applicationRepo, DocumentsUploadService documentUploadService, ILogger<DocumentsController> logger, IUser userRepo)
+        private readonly IUserAudit _userAudit;
+        public DocumentsController(IDocumentsMetaData documentsMRepo, IApplication applicationRepo, DocumentsUploadService documentUploadService, ILogger<DocumentsController> logger, IUser userRepo, IUserAudit userAudit)
         {
             _documentsMRepo = documentsMRepo;
             _applicationRepo = applicationRepo;
             _documentUploadService = documentUploadService;
             _logger = logger;
             _userRepo = userRepo;
+            _userAudit = userAudit;
         }
 
         [HttpPost("{studentIdNumber}")]
@@ -36,6 +39,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 const long MaxFileSize = 5 * 1024 * 1024;
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
@@ -82,6 +86,8 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if(!result) return BadRequest( new {Message = "Could not upload documents"});
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "create", $"Uploaded documents for: {application.StudentProfile.StudentProfileId}");
+
                 return Ok( new {Message = "Upload Successful"} );
 
             }
@@ -98,6 +104,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             try
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType != "access-token")
                 {
@@ -134,6 +142,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Doc Not Found" });
                 }
 
+
+
                 return Ok(document);
             }
             catch (Exception ex)
@@ -149,6 +159,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             try
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType != "access-token")
                 {
@@ -167,6 +179,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Doc Not Found" });
 
                 var fileBytes = System.IO.File.ReadAllBytes(filePath);
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "read", $"Viewed this document: {documentId}");
 
                 return Ok(new
                 {
@@ -187,6 +201,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             try
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType != "access-token")
                 {
@@ -205,6 +221,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Doc Not Found" });
 
                 var fileBytes = System.IO.File.ReadAllBytes(filePath);
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "read", $"Downloaded this document: {documentId}");
 
                 return Ok(new
                 {
@@ -226,6 +244,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType != "access-token")
@@ -265,6 +284,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     await _applicationRepo.UpdateAreDocumentsSubmitted(studentIdNumber, false);
                 }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "delete", $"Deleted this document: {id} belonging to {studentIdNumber}");
 
                 return Ok( new {Message = "Delete Successful"});
             }

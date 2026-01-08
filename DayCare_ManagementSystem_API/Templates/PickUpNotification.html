@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body { margin: 0; padding: 0; background-color: #ffffff; }
+    .wrapper { width: 100%; padding: 60px 0; background-color: #fafafa; }
+    .container { 
+        max-width: 550px; 
+        margin: 0 auto; 
+        background-color: #ffffff; 
+        padding: 60px; 
+        border-top: 3px solid #333333;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .school-name { 
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #888888;
+        margin-bottom: 50px;
+        text-align: center;
+    }
+    .message {
+        font-family: "Georgia", serif;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #1a1a1a;
+        text-align: left;
+    }
+    .footer-line {
+        margin-top: 50px;
+        border-top: 1px solid #eeeeee;
+        padding-top: 20px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        color: #bbbbbb;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="school-name">
+                {{School Name}}
+            </div>
+            
+            <div class="message">
+                Dear Guardian/Kin,<br><br>
+
+                This is to notify you that <strong>{{StudentName}}</strong> has not been picked up from
+                {{School Name}} today as expected on.<br><br>
+
+                Kindly make the necessary arrangements for collection as soon as possible or contact the
+                school immediately if there are any concerns or delays.<br><br>
+
+                Thank you for your prompt attention to this matter.
+            </div>
+
+            <div class="footer-line">
+                OFFICIAL STUDENT PICK-UP NOTICE
+            </div>
+        </div>
+    </div>
+</body>
+</html>
