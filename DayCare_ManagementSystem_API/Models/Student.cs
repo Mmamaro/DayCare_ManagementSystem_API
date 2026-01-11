@@ -15,6 +15,7 @@ namespace DayCare_ManagementSystem_API.Models
         public string LastUpdatedAt { get; set; }
         public bool IsActive { get; set; }
         public StudentProfile StudentProfile { get; set; }
+        public Disability Disability { get; set; }
         public List<Allergy>? Allergies { get; set; }
         public List<MedicalCondition>? MedicalConditions { get; set; }
         public List<NextOfKin> NextOfKins { get; set; }

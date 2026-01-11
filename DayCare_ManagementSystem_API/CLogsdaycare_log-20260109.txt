@@ -1,0 +1,73 @@
+2026-01-09 09:36:22.606 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 09:36:23.712 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 11:36:23
+2026-01-09 09:36:23.712 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 09:36:25.132 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 11:36:25
+2026-01-09 10:01:07.524 +00:00 [ERR] Error in the Users Controller while trying to update MFA
+System.NullReferenceException: Object reference not set to an instance of an object.
+   at DayCare_ManagementSystem_API.Controllers.UsersController.EnableMFA(String id, EnableMFAModel payload) in C:\Users\PaballoMmamaro\source\repos\Personal\DayCare_ManagementSystem_API_1\DayCare_ManagementSystem_API\Controllers\UsersController.cs:line 454
+2026-01-09 10:09:51.070 +00:00 [INF] User: paballoelisa22@gmail.com MFA has been setup.
+2026-01-09 12:34:28.897 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 12:34:29.418 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 14:34:29
+2026-01-09 12:34:29.418 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 12:34:29.891 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 14:34:29
+2026-01-09 12:54:49.616 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 12:54:50.176 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 14:54:50
+2026-01-09 12:54:50.176 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 12:54:50.587 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 14:54:50
+2026-01-09 12:59:59.800 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 13:00:00.323 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 13:00:00.323 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 15:00:00
+2026-01-09 13:00:00.803 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 15:00:00
+2026-01-09 13:27:01.949 +00:00 [ERR] Error in while trying to send an email
+System.Net.Mail.SmtpException: Failure sending mail.
+ ---> System.Net.Sockets.SocketException (0xFFFDFFFF): Name or service not known
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.Tasks.TaskToAsyncResult.End(IAsyncResult asyncResult)
+   at System.Net.Sockets.TcpClient.EndConnect(IAsyncResult asyncResult)
+   at System.Net.Mail.SmtpConnection.ConnectAndHandshakeAsyncResult.InitializeConnectionCallback(IAsyncResult result)
+--- End of stack trace from previous location ---
+   at System.Net.Mail.SmtpClient.ConnectCallback(IAsyncResult result)
+   --- End of inner exception stack trace ---
+   at DayCare_ManagementSystem_API.Service.EmailService.SendTemplateEmail(List`1 recipents, String subject, String htmlbody) in C:\Users\PaballoMmamaro\source\repos\Personal\DayCare_ManagementSystem_API_1\DayCare_ManagementSystem_API\Service\EmailService.cs:line 48
+2026-01-09 13:27:02.069 +00:00 [ERR] Error in the ApplicationController in the SubmitApplication endpoint
+System.Net.Mail.SmtpException: Failure sending mail.
+ ---> System.Net.Sockets.SocketException (0xFFFDFFFF): Name or service not known
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Threading.Tasks.ValueTask.ValueTaskSourceAsTask.<>c.<.cctor>b__4_0(Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.Tasks.TaskToAsyncResult.End(IAsyncResult asyncResult)
+   at System.Net.Sockets.TcpClient.EndConnect(IAsyncResult asyncResult)
+   at System.Net.Mail.SmtpConnection.ConnectAndHandshakeAsyncResult.InitializeConnectionCallback(IAsyncResult result)
+--- End of stack trace from previous location ---
+   at System.Net.Mail.SmtpClient.ConnectCallback(IAsyncResult result)
+   --- End of inner exception stack trace ---
+   at DayCare_ManagementSystem_API.Service.EmailService.SendTemplateEmail(List`1 recipents, String subject, String htmlbody) in C:\Users\PaballoMmamaro\source\repos\Personal\DayCare_ManagementSystem_API_1\DayCare_ManagementSystem_API\Service\EmailService.cs:line 48
+   at DayCare_ManagementSystem_API.Controllers.ApplicationController.SubmitApplication(ApplicationRequest payload) in C:\Users\PaballoMmamaro\source\repos\Personal\DayCare_ManagementSystem_API_1\DayCare_ManagementSystem_API\Controllers\ApplicationController.cs:line 122
+2026-01-09 13:55:04.361 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 13:55:04.870 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 15:55:04
+2026-01-09 13:55:04.870 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 13:55:05.283 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 15:55:05
+2026-01-09 14:01:28.062 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 14:01:28.583 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 16:01:28
+2026-01-09 14:01:28.583 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 14:01:29.013 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 16:01:29
+2026-01-09 14:03:15.243 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 14:03:15.944 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 16:03:15
+2026-01-09 14:03:15.944 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 14:03:16.498 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 16:03:16
+2026-01-09 14:07:53.797 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 14:07:54.286 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 16:07:54
+2026-01-09 14:07:54.286 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 14:07:54.800 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 16:07:54
+2026-01-09 14:15:41.548 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 14:15:42.051 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 14:15:42.051 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 16:15:42
+2026-01-09 14:15:42.550 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 16:15:42
+2026-01-09 14:31:32.464 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-09 14:31:32.981 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 17:00:00
+2026-01-09 14:31:32.981 +00:00 [INF] DBCleanUpWorkerService running aat: 01/09/2026 16:31:32
+2026-01-09 14:31:33.431 +00:00 [INF] DBCleanUpWorkerService done running at: 01/09/2026 16:31:33

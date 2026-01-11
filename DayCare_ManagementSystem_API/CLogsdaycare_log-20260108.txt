@@ -148,3 +148,56 @@ System.Net.Mail.SmtpException: Failure sending mail.
 2026-01-08 11:08:59.083 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:08:59
 2026-01-08 11:12:03.845 +00:00 [INF] PickUpWorkerService Finished running at: 01/08/2026 13:12:03
 2026-01-08 11:12:10.818 +00:00 [INF] PickUpWorkerService Next run is at: 01/09/2026 13:09:00
+2026-01-08 11:26:56.732 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 11:26:57.159 +00:00 [WRN] No XML encryptor configured. Key {676a0e23-ab7d-4c6b-bde9-6a82f459c44e} may be persisted to storage in unencrypted form.
+2026-01-08 11:27:08.093 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 11:27:08.093 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:27:07
+2026-01-08 11:27:30.211 +00:00 [WRN] Dropped collection: Students
+2026-01-08 11:27:33.038 +00:00 [WRN] Dropped collection: Applications
+2026-01-08 11:27:35.463 +00:00 [WRN] Dropped collection: DocumentsMetadata
+2026-01-08 11:27:37.959 +00:00 [WRN] Dropped collection: DropOffPickUpEvents
+2026-01-08 11:27:42.498 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 13:27:42
+2026-01-08 11:29:55.496 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 11:30:00.921 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:30:00
+2026-01-08 11:30:00.921 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 11:32:12.844 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 11:32:26.637 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:32:26
+2026-01-08 11:32:26.637 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 11:33:10.379 +00:00 [WRN] Dropped collection: Students
+2026-01-08 11:33:15.932 +00:00 [WRN] Dropped collection: Applications
+2026-01-08 11:33:29.659 +00:00 [WRN] Dropped collection: DocumentsMetadata
+2026-01-08 11:33:33.056 +00:00 [WRN] Dropped collection: DropOffPickUpEvents
+2026-01-08 11:33:38.039 +00:00 [WRN] Dropped collection: UserAudits
+2026-01-08 11:33:50.073 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 13:33:49
+2026-01-08 11:39:32.051 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 11:39:40.121 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:07
+2026-01-08 11:39:40.121 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:39:40
+2026-01-08 11:40:22.846 +00:00 [WRN] Collection does not exist: Students
+2026-01-08 11:40:40.779 +00:00 [WRN] Dropped collection: Applications
+2026-01-08 11:41:05.636 +00:00 [WRN] Collection does not exist: DocumentsMetadata
+2026-01-08 11:41:29.168 +00:00 [WRN] Collection does not exist: DropOffPickUpEvents
+2026-01-08 11:42:00.284 +00:00 [WRN] Collection does not exist: UserAudits
+2026-01-08 11:42:05.507 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 13:42:05
+2026-01-08 11:43:56.040 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 11:43:56.473 +00:00 [WRN] No XML encryptor configured. Key {422a8054-9027-4e06-a73f-6ccbbb6ba080} may be persisted to storage in unencrypted form.
+2026-01-08 11:44:23.610 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 13:44:23
+2026-01-08 11:44:23.610 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 11:44:48.365 +00:00 [WRN] Collection does not exist: Students
+2026-01-08 11:44:48.369 +00:00 [WRN] Collection does not exist: Applications
+2026-01-08 11:45:06.737 +00:00 [WRN] Dropped collection: DocumentsMetaData
+2026-01-08 11:45:06.740 +00:00 [WRN] Collection does not exist: DropOffPickUpEvents
+2026-01-08 11:45:06.743 +00:00 [WRN] Collection does not exist: UserAudits
+2026-01-08 11:45:06.842 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 13:45:06
+2026-01-08 12:16:51.611 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 12:16:52.080 +00:00 [WRN] No XML encryptor configured. Key {df4bf616-07b8-4797-be1d-de3e42b5a672} may be persisted to storage in unencrypted form.
+2026-01-08 12:16:52.134 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 14:16:52
+2026-01-08 12:16:52.134 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 12:16:52.615 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 14:16:52
+2026-01-08 12:20:34.145 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 12:20:34.555 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 14:20:34
+2026-01-08 12:20:34.555 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 12:20:34.950 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 14:20:34
+2026-01-08 12:22:54.266 +00:00 [WRN] Storing keys in a directory '/root/.aspnet/DataProtection-Keys' that may not be persisted outside of the container. Protected data will be unavailable when container is destroyed. For more information go to https://aka.ms/aspnet/dataprotectionwarning
+2026-01-08 12:22:54.722 +00:00 [INF] DBCleanUpWorkerService running aat: 01/08/2026 14:22:54
+2026-01-08 12:22:54.722 +00:00 [INF] PickUpWorkerService Next run is at: 01/08/2026 17:00:00
+2026-01-08 12:22:55.127 +00:00 [INF] DBCleanUpWorkerService done running at: 01/08/2026 14:22:55

@@ -20,7 +20,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<DeleteResult> DeleteApplicationByNextOfKinIdNumber(string idNumber);
         public Task<List<Application>> GetAllApplications();
         public Task<Application> GetApplicationById(string id);
-        public Task<Application> GetApplicationBySubmittedBy(string SubmittedBy);
+        public Task<List<Application>> GetApplicationsBySubmittedBy(string SubmittedBy);
         public Task<List<NextOfKin>> GetNextOfKins(string applicationId);
         public Task<NextOfKin> GetNextOfKinByIdNumber(string idNumber);
         public Task<Application> GetApplicationByStudentIdNumber(string IdNumber);
@@ -116,16 +116,17 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var application = new Application()
                 {
                     ApplicationId = ObjectId.GenerateNewId().ToString(),
-                    SubmittedAt = DateTime.Now.AddHours(2),
+                    SubmittedAt = DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     SubmittedBy = submittedBy,
-                    LastUpdatedAt = DateTime.Now.AddHours(2),
+                    LastUpdatedAt = DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     Allergies = allergies,
                     EnrollmentYear = payload.EnrollmentYear,
                     MedicalConditions = medicalConditions,
                     NextOfKins = nextOfKins,
                     ApplicationStatus = "waiting",
                     StudentProfile = payload.StudentProfile,
-                    AreDocumentsSubmitted = false
+                    AreDocumentsSubmitted = false,
+                    Disability = payload.Disability
                 };
 
                 await _ApplicationCollection.InsertOneAsync(application);
@@ -171,7 +172,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .PushEach(a => a.NextOfKins, NextOfKins)
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -208,7 +209,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .PushEach(a => a.Allergies, Allergies)
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -245,7 +246,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .PushEach(a => a.MedicalConditions, medicalConditions)
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
             }
@@ -333,11 +334,11 @@ namespace DayCare_ManagementSystem_API.Repositories
 
         #region [ Get Application By SubmittedBy ]
 
-        public async Task<Application> GetApplicationBySubmittedBy(string SubmittedBy)
+        public async Task<List<Application>> GetApplicationsBySubmittedBy(string SubmittedBy)
         {
             try
             {
-                return await _ApplicationCollection.Find(c => c.SubmittedBy == SubmittedBy).FirstOrDefaultAsync();
+                return await _ApplicationCollection.Find(c => c.SubmittedBy == SubmittedBy).ToListAsync();
 
             }
             catch (Exception ex)
@@ -530,11 +531,11 @@ namespace DayCare_ManagementSystem_API.Repositories
                 var builder = Builders<Application>.Filter;
                 var filter = builder.Empty;
 
-                //var startDateUtc = DateTime.SpecifyKind(payload.Start, DateTimeKind.Utc);
-                //var endDateUtc = DateTime.SpecifyKind(payload.End, DateTimeKind.Utc);
+                var start = payload.Start?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                var end = payload.End?.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-                //filter &= builder.Gte(a => a.SubmittedAt, startDateUtc)
-                //                & builder.Lte(a => a.SubmittedAt, endDateUtc);
+                filter &= builder.Gte(a => a.SubmittedAt, start)
+                                & builder.Lte(a => a.SubmittedAt, end);
 
                 if (!string.IsNullOrWhiteSpace(payload.StudentIdNumber))
                 {
@@ -562,6 +563,11 @@ namespace DayCare_ManagementSystem_API.Repositories
                 if (payload.AreDocumentsSubmitted.HasValue)
                 {
                     filter &= builder.Eq(a => a.AreDocumentsSubmitted, payload.AreDocumentsSubmitted);
+                }
+
+                if (payload.HasDisability.HasValue)
+                {
+                    filter &= builder.Eq(a => a.Disability.HasDisability, payload.HasDisability);
                 }
 
                 return await _ApplicationCollection
@@ -593,14 +599,13 @@ namespace DayCare_ManagementSystem_API.Repositories
                  updates.Add(Builders<Application>.Update
                     .Set(a => a.ApplicationStatus, payload.Status.ToLower()));
 
-                if (!string.IsNullOrEmpty(payload.RejectionNotes))
-                {
-                    updates.Add(Builders<Application>.Update
-                        .Set(a => a.RejectionNotes, payload.RejectionNotes));
-                }
 
                 updates.Add(Builders<Application>.Update
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
+                    .Set(a => a.RejectionNotes, payload.RejectionNotes));
+                
+
+                updates.Add(Builders<Application>.Update
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")));
 
                 var update = Builders<Application>.Update.Combine(updates);
 
@@ -632,7 +637,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                     .Set(a => a.SubmittedBy, SubmittedBy));
 
                 updates.Add(Builders<Application>.Update
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")));
 
                 var update = Builders<Application>.Update.Combine(updates);
 
@@ -670,7 +675,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("NextOfKins.$.IdNumber", payload.IdNumber)
                         .Set("NextOfKins.$.PhoneNumber", payload.PhoneNumber)
                         .Set("NextOfKins.$.Email", payload.Email.ToLower())
-                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -726,7 +731,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set(a => a.StudentProfile.IdNumber, payload.IdNumber));
                 }
                 updates.Add(Builders<Application>.Update
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2)));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")));
 
                 var update = Builders<Application>.Update.Combine(updates);
 
@@ -761,7 +766,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("Allergies.$.Name", payload.Name.ToLower())
                         .Set("Allergies.$.Severity", payload.Severity.ToLower())
                         .Set("Allergies.$.Notes", payload.Notes)
-                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -794,7 +799,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                         .Set("MedicalConditions.$.Name", payload.Name.ToLower())
                         .Set("MedicalConditions.$.Notes", payload.Notes)
                         .Set("MedicalConditions.$.Severity", payload.Severity)
-                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                        .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 
@@ -819,7 +824,7 @@ namespace DayCare_ManagementSystem_API.Repositories
 
                 var update = Builders<Application>.Update
                     .Set(a => a.AreDocumentsSubmitted, isSubmitted)
-                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2));
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                 return await _ApplicationCollection.UpdateOneAsync(filter, update);
 

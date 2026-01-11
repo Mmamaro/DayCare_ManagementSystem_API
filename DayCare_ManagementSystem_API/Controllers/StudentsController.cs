@@ -70,8 +70,6 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var kin = application.NextOfKins.FirstOrDefault(x => x.Email.ToLower() == tokenUserEmail.ToLower());
 
-                if (kin != null) return BadRequest( new {Message = "You cannot perform this task for your own child."} );
-
                 if(role.ToLower() != "admin" || role.ToLower() != "staff" && kin == null) Unauthorized(new { Message = "You cannot register this student." });
 
                 var student = new Student()
@@ -102,7 +100,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-
+        [Authorize(Roles = "admin,staff")]
         [HttpGet("{StudentId:length(24)}")]
         public async Task<IActionResult> GetStudentById(string StudentId)
         {
@@ -179,8 +177,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     Age = _generalChecksHelper.GetAge(x.StudentProfile.DateOfBirth),
                     DateOfBirth = x.StudentProfile.DateOfBirth,
-                    FirstName = x.StudentProfile.FirstName,
-                    LastName = x.StudentProfile.LastName,
+                    FullName = x.StudentProfile.FirstName + $" {x.StudentProfile.LastName}",
                     Gender = x.StudentProfile.Gender,
                     IdNumber = x.StudentProfile.IdNumber,
                     IsActive = x.IsActive,
@@ -188,7 +185,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     RegisteredAt = x.RegisteredAt,
                     StudentId = x.StudentId,
                     Allergies = x.Allergies.Count(),
-                    MedicalConditions = x.MedicalConditions.Count()
+                    MedicalConditions = x.MedicalConditions.Count(),
+                    HasDisability = x.Disability.HasDisability
                 });
 
                 var orderedStudents = StudentDTO.OrderByDescending(x => x.Age).ToList();
@@ -215,14 +213,11 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
-                var allergies = await _studentRepo.GetAllergies(StudentId);
+                var student = await _studentRepo.GetStudentById(StudentId);
 
-                if (allergies == null)
-                {
-                    return NotFound();
-                }
+                if (student == null) return NotFound( new { Message = "Student does not exist"} );
 
-                return Ok(allergies);
+                return Ok(student.Allergies);
             }
             catch (Exception ex)
             {
@@ -243,14 +238,11 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
-                var medicalConditions = await _studentRepo.GetMedicalConditions(StudentId);
+                var student = await _studentRepo.GetStudentById(StudentId);
 
-                if (medicalConditions == null)
-                {
-                    return NotFound();
-                }
+                if (student == null) return NotFound(new { Message = "Student does not exist" });
 
-                return Ok(medicalConditions);
+                return Ok(student.MedicalConditions);
             }
             catch (Exception ex)
             {
@@ -271,12 +263,13 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
-                var kin = await _studentRepo.GetNextOfKinByIdNumber(StudentId, kinIdNumber);
+                var student = await _studentRepo.GetStudentById(StudentId);
 
-                if (kin == null)
-                {
-                    return NotFound();
-                }
+                if (student == null) return NotFound( new {Message = "Student does not exist"} );
+
+                var kin = student.NextOfKins.Where(x => x.IdNumber == kinIdNumber).FirstOrDefault();
+
+                if (kin == null) return NotFound(new { Message = "No such kin for this student" });
 
                 return Ok(kin);
             }
@@ -299,14 +292,11 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
-                var kins = await _studentRepo.GetNextOfKins(StudentId);
+                var student = await _studentRepo.GetStudentById(StudentId);
 
-                if (kins == null)
-                {
-                    return NotFound();
-                }
+                if (student == null) return NotFound(new { Message = "Student does not exist" });
 
-                return Ok(kins);
+                return Ok(student.NextOfKins);
             }
             catch (Exception ex)
             {
@@ -338,8 +328,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     Age = _generalChecksHelper.GetAge(x.StudentProfile.DateOfBirth),
                     DateOfBirth = x.StudentProfile.DateOfBirth,
-                    FirstName = x.StudentProfile.FirstName,
-                    LastName = x.StudentProfile.LastName,
+                    FullName = x.StudentProfile.FirstName + $" {x.StudentProfile.LastName}",
                     Gender = x.StudentProfile.Gender,
                     IdNumber = x.StudentProfile.IdNumber,
                     IsActive = x.IsActive,
@@ -384,8 +373,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                 {
                     Age = _generalChecksHelper.GetAge(x.StudentProfile.DateOfBirth),
                     DateOfBirth = x.StudentProfile.DateOfBirth,
-                    FirstName = x.StudentProfile.FirstName,
-                    LastName = x.StudentProfile.LastName,
+                    FullName = x.StudentProfile.FirstName + $" {x.StudentProfile.LastName}",
                     Gender = x.StudentProfile.Gender,
                     IdNumber = x.StudentProfile.IdNumber,
                     IsActive = x.IsActive,
@@ -574,9 +562,23 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Student Not Found" });
                 }
 
-                var nextOfKin = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+                var kin = Student?.NextOfKins.FirstOrDefault(a => a.NextOfKinId == payload.NextOfKinId);
 
-                if (role.ToLower() != "admin" && nextOfKin == null)
+                if (kin == null)
+                {
+                    return NotFound(new { Message = "Student does not have such kin." });
+                }
+
+                var nextOfKin = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == payload.IdNumber);
+
+                if (nextOfKin != null && payload.IdNumber != nextOfKin.IdNumber)
+                {
+                    return Conflict(new { Message = "Kin Id number already exists." });
+                }
+
+                var isRelatedToStudent = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+
+                if (role.ToLower() != "admin" && isRelatedToStudent == null)
                 {
                     return Unauthorized(new { Message = "You cannot update an Student that does not belong to you." });
                 }
@@ -687,7 +689,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                     if (exists != null)
                     {
-                        return Conflict(new { Message = "Medical Condition already exists on this Student" });
+                        return Conflict(new { Message = $"{exists.Name}: Medical Condition already exists on this Student" });
                     }
                 }
 
@@ -754,7 +756,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                     if (exists != null)
                     {
-                        return Conflict(new { Message = "Allergy already exists on this Student" });
+                        return Conflict(new { Message = $"{exists.Name}: Allergy already exists on this Student" });
                     }
                 }
 
@@ -803,9 +805,17 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return NotFound(new { Message = "Student Not Found" });
                 }
 
-                var nextOfKin = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+                foreach (var kin in payload)
+                {
+                    var nextOfKin = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == kin.IdNumber);
 
-                if (role.ToLower() != "admin" && nextOfKin == null)
+                    if (nextOfKin != null) return BadRequest(new { Message = $"{nextOfKin.IdNumber}: This Kin Id already exists" });
+                }
+
+                var relatedToStudent = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+
+
+                if (role.ToLower() != "admin" && relatedToStudent == null)
                 {
                     return Unauthorized(new { Message = "You cannot update an Student that does not belong to you." });
                 }
@@ -834,6 +844,68 @@ namespace DayCare_ManagementSystem_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the StudentController in the AddNextOfKins endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{StudentId:length(24)}/remove-nextofkin/{kinId:length(24)}")]
+        public async Task<IActionResult> RemoveNextOfKIn(string StudentId, string kinId)
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+                var Student = await _studentRepo.GetStudentById(StudentId);
+
+                if (Student == null)
+                {
+                    return NotFound(new { Message = "Student Not Found" });
+                }
+
+                var kinExists = Student?.NextOfKins.FirstOrDefault(a => a.NextOfKinId == kinId);
+
+                if (kinExists == null)
+                {
+                    return NotFound(new { Message = "NextOfKin does not exist" });
+                }
+
+                var isRelatedToStudent = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+
+                if (role.ToLower() != "admin" && isRelatedToStudent == null)
+                {
+                    return Unauthorized(new { Message = "You cannot update an Student that does not belong to you." });
+                }
+
+                var validSeverities = new List<string>() { "low", "medium", "high" };
+
+                
+                var result = await _studentRepo.RemoveNextOfKin(StudentId, kinId);
+
+                if (result.ModifiedCount <= 0)
+                {
+                    return BadRequest(new { Message = "Could not update medical condition" });
+                }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Removed {kinId} NextOfKIn from this student {StudentId}");
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the StudentController in the UpdateMedicalCondition endpoint");
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
 

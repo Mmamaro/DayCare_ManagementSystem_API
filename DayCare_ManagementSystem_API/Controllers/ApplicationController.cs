@@ -7,6 +7,7 @@ using DayCare_ManagementSystem_API.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using System;
 using System.Security.Claims;
@@ -57,7 +58,12 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var (isValidPeriod, message) = _generalChecksHelper.ValidApplicationPeriod(payload.EnrollmentYear);
 
-                if (!isValidPeriod) return BadRequest(new { Message = message }); 
+                if (!isValidPeriod) return BadRequest(new { Message = message });
+
+                if (payload.Disability.HasDisability == true && string.IsNullOrEmpty(payload.Disability.Description))
+                {
+                    return BadRequest(new { Message = "Provide the decription of the child's disability" });
+                }
 
                 if (payload.NextOfKins.Any())
                 {
@@ -124,8 +130,8 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [HttpGet("submittedby/{submittedby}")]
-        public async Task<IActionResult> GetApplicationBySubmittedBy(string submittedby)
+        [HttpGet("submittedby")]
+        public async Task<IActionResult> GetApplicationBySubmittedBy()
         {
             try
             {
@@ -142,23 +148,25 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (user == null) return BadRequest(new { Message = "Invalid token" });
 
-                var application = await _applicationRepo.GetApplicationBySubmittedBy(user.IdNumber);
+                var applications = await _applicationRepo.GetApplicationsBySubmittedBy(user.IdNumber);
 
-                if (application == null)
+                if (applications == null)
                 {
                     return NotFound( new { Message = "No Application Related to you"});
                 }
 
-                var applicationDTO =  new ApplicationDTO()
+                var applicationDTO = applications.Select(x => new ApplicationDTO
                 {
-                    ApplicationId = application.ApplicationId,
-                    EnrollmentYear = application.EnrollmentYear,
-                    LastUpdatedAt = application.LastUpdatedAt,
-                    RejectionNotes = application.RejectionNotes,
-                    ApplicationStatus = application.ApplicationStatus,
-                    SubmittedAt = application.SubmittedAt,
-                    SubmittedBy = application.SubmittedBy
-                };
+                    ApplicationId = x.ApplicationId,
+                    EnrollmentYear = x.EnrollmentYear,
+                    LastUpdatedAt = x.LastUpdatedAt,
+                    RejectionNotes = x.RejectionNotes,
+                    ApplicationStatus = x.ApplicationStatus,
+                    SubmittedAt = x.SubmittedAt,
+                    SubmittedBy = x.SubmittedBy,
+                    AreDocumentsSubmitted = x.AreDocumentsSubmitted,
+                    HasDisability = x.Disability.HasDisability
+                });
 
 
                 return Ok(applicationDTO);
@@ -222,7 +230,9 @@ namespace DayCare_ManagementSystem_API.Controllers
                     RejectionNotes = x.RejectionNotes,
                     ApplicationStatus = x.ApplicationStatus,
                     SubmittedAt = x.SubmittedAt,
-                    SubmittedBy = x.SubmittedBy
+                    SubmittedBy = x.SubmittedBy,
+                    AreDocumentsSubmitted = x.AreDocumentsSubmitted,
+                    HasDisability = x.Disability.HasDisability
                 });
 
                 var orderedApplications = applicationDTO.OrderByDescending(x => x.SubmittedAt).ToList();
@@ -537,187 +547,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        [HttpPatch("{applicationId:length(24)}/add-medicalconditions")]
-        public async Task<IActionResult> AddMedicalConditions(string applicationId, List<AddMedicalCondition> payload)
-        {
-            try
-            {
-                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
-                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
-                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
-                if (tokenType.ToLower() != "access-token")
-                {
-                    return Unauthorized(new { Message = "Invalid token" });
-                }
-
-                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
-
-                if (user == null) return BadRequest(new { Message = "Invalid token" });
-
-                var application = await _applicationRepo.GetApplicationById(applicationId);
-
-                if (application == null)
-                {
-                    return NotFound(new { Message = "Application Not Found" });
-                }
-
-                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
-                {
-                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
-                }
-
-                var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(payload, new List<AddAllergy?>());
-
-                if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
-
-                if (_generalChecksHelper.HasDuplicateNames(payload, null, null)) return Conflict(new { Message = "Duplicate Medical Condition Name in request payload" });
-
-                foreach (var medicalC in payload)
-                {
-                    var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
-
-                    if (exists != null)
-                    {
-                        return Conflict(new { Message = "Medical Condition already exists on this application" });
-                    }
-                }
-
-                var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
-
-                if (result.ModifiedCount <= 0)
-                {
-                    return BadRequest(new { Message = "Could not add medical conditions to application" });
-                }
-
-                return Ok(new { Message = "Update successful" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationNextOfKin endpoint");
-                return StatusCode(500, new { Message = "Encoutered an error" });
-            }
-        }
-
-        [HttpPatch("{applicationId:length(24)}/add-allergies")]
-        public async Task<IActionResult> AddAllergies(string applicationId, List<AddAllergy> payload)
-        {
-            try
-            {
-                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
-                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
-                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
-
-                if (tokenType.ToLower() != "access-token")
-                {
-                    return Unauthorized(new { Message = "Invalid token" });
-                }
-
-                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
-
-                if (user == null) return BadRequest(new { Message = "Invalid token" });
-
-                var application = await _applicationRepo.GetApplicationById(applicationId);
-
-                if (application == null)
-                {
-                    return NotFound(new { Message = "Application Not Found" });
-                }
-
-                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
-                {
-                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
-                }
-
-                var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(new List<AddMedicalCondition?>(), payload);
-
-                if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
-
-                if (_generalChecksHelper.HasDuplicateNames(null, payload, null)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
-
-                foreach (var allergy in payload)
-                {
-                    var exists = await _applicationRepo.GetAllergyByName(applicationId, allergy.Name);
-
-                    if (exists != null)
-                    {
-                        return Conflict(new { Message = "Allergy already exists on this application" });
-                    }
-                }
-
-                var result = await _applicationRepo.AddAllergies(payload, applicationId);
-
-                if (result.ModifiedCount <= 0) 
-                {
-                    return BadRequest(new { Message = "Could not add allergies to application" });
-                }
-
-                return Ok(new { Message = "Update successful" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in the ApplicationController in the AddAllergies endpoint");
-                return StatusCode(500, new { Message = "Encoutered an error" });
-            }
-
-        }
-
-        [HttpPatch("{applicationId:length(24)}/add-nextofkins")]
-        public async Task<IActionResult> AddNextOfKins(string applicationId, List<AddNextOfKin> payload)
-        {
-            try
-            {
-                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
-                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
-                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
-
-                if (tokenType.ToLower() != "access-token")
-                {
-                    return Unauthorized(new { Message = "Invalid token" });
-                }
-
-                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
-
-                if (user == null) return BadRequest(new { Message = "Invalid token" });
-
-                var application = await _applicationRepo.GetApplicationById(applicationId);
-
-                if (application == null)
-                {
-                    return NotFound(new { Message = "Application Not Found" });
-                }
-
-                if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
-                {
-                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
-                }
-
-                var nextOfKins = await _applicationRepo.GetNextOfKins(applicationId);
-
-                if (nextOfKins.Count + payload.Count > 5)
-                {
-                    return BadRequest(new { Message = $"A child can only have 5 next of kins there is {nextOfKins.Count} already added" });
-                }
-
-                if (_generalChecksHelper.HasDuplicateNames(new List<AddMedicalCondition?>(), new List<AddAllergy?>(), payload)) return Conflict(new { Message = "Has duplicates Next Of Kins" });
-
-
-                var result = await _applicationRepo.AddNextOfKins(payload, applicationId);
-
-                if (result.ModifiedCount <= 0)
-                {
-                    return BadRequest(new { Message = "Could not add NextOfKins to application" });
-                }
-
-                return Ok(new { Message = "Update successful" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in the ApplicationController in the AddNextOfKins endpoint");
-                return StatusCode(500, new { Message = "Encoutered an error" });
-            }
-
-        }
 
         [HttpDelete("{applicationId:length(24)}")]
         public async Task<IActionResult> DeleteApplication(string applicationId)
@@ -768,10 +598,188 @@ namespace DayCare_ManagementSystem_API.Controllers
 
         }
 
-        //Todo
-        //Add audits especially on Applications
-        //Fix and test dates
-        //Test application delete
+        //[HttpPatch("{applicationId:length(24)}/add-medicalconditions")]
+
+        //public async Task<IActionResult> AddMedicalConditions(string applicationId, List<AddMedicalCondition> payload)
+        //{
+        //    try
+        //    {
+        //        var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+        //        var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+        //        var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+        //        if (tokenType.ToLower() != "access-token")
+        //        {
+        //            return Unauthorized(new { Message = "Invalid token" });
+        //        }
+
+        //        var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+        //        if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+        //        var application = await _applicationRepo.GetApplicationById(applicationId);
+
+        //        if (application == null)
+        //        {
+        //            return NotFound(new { Message = "Application Not Found" });
+        //        }
+
+        //        if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+        //        {
+        //            return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+        //        }
+
+        //        var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(payload, new List<AddAllergy?>());
+
+        //        if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
+
+        //        if (_generalChecksHelper.HasDuplicateNames(payload, null, null)) return Conflict(new { Message = "Duplicate Medical Condition Name in request payload" });
+
+        //        foreach (var medicalC in payload)
+        //        {
+        //            var exists = await _applicationRepo.GetMedicalConditionByName(applicationId, medicalC.Name);
+
+        //            if (exists != null)
+        //            {
+        //                return Conflict(new { Message = "Medical Condition already exists on this application" });
+        //            }
+        //        }
+
+        //        var result = await _applicationRepo.AddMedicalConditions(payload, applicationId);
+
+        //        if (result.ModifiedCount <= 0)
+        //        {
+        //            return BadRequest(new { Message = "Could not add medical conditions to application" });
+        //        }
+
+        //        return Ok(new { Message = "Update successful" });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationNextOfKin endpoint");
+        //        return StatusCode(500, new { Message = "Encoutered an error" });
+        //    }
+        //}
+
+        //[HttpPatch("{applicationId:length(24)}/add-allergies")]
+        //public async Task<IActionResult> AddAllergies(string applicationId, List<AddAllergy> payload)
+        //{
+        //    try
+        //    {
+        //        var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+        //        var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+        //        var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+        //        if (tokenType.ToLower() != "access-token")
+        //        {
+        //            return Unauthorized(new { Message = "Invalid token" });
+        //        }
+
+        //        var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+        //        if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+        //        var application = await _applicationRepo.GetApplicationById(applicationId);
+
+        //        if (application == null)
+        //        {
+        //            return NotFound(new { Message = "Application Not Found" });
+        //        }
+
+        //        if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+        //        {
+        //            return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+        //        }
+
+        //        var (isValidSeverities, sevMessage) = _generalChecksHelper.IsValidSeverity(new List<AddMedicalCondition?>(), payload);
+
+        //        if (!isValidSeverities) return BadRequest(new { Message = sevMessage });
+
+        //        if (_generalChecksHelper.HasDuplicateNames(null, payload, null)) return Conflict(new { Message = "Duplicate Allergy Name in request payload" });
+
+        //        foreach (var allergy in payload)
+        //        {
+        //            var exists = await _applicationRepo.GetAllergyByName(applicationId, allergy.Name);
+
+        //            if (exists != null)
+        //            {
+        //                return Conflict(new { Message = "Allergy already exists on this application" });
+        //            }
+        //        }
+
+        //        var result = await _applicationRepo.AddAllergies(payload, applicationId);
+
+        //        if (result.ModifiedCount <= 0)
+        //        {
+        //            return BadRequest(new { Message = "Could not add allergies to application" });
+        //        }
+
+        //        return Ok(new { Message = "Update successful" });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in the ApplicationController in the AddAllergies endpoint");
+        //        return StatusCode(500, new { Message = "Encoutered an error" });
+        //    }
+
+        //}
+
+        //[HttpPatch("{applicationId:length(24)}/add-nextofkins")]
+        //public async Task<IActionResult> AddNextOfKins(string applicationId, List<AddNextOfKin> payload)
+        //{
+        //    try
+        //    {
+        //        var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+        //        var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+        //        var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+        //        if (tokenType.ToLower() != "access-token")
+        //        {
+        //            return Unauthorized(new { Message = "Invalid token" });
+        //        }
+
+        //        var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+        //        if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+        //        var application = await _applicationRepo.GetApplicationById(applicationId);
+
+        //        if (application == null)
+        //        {
+        //            return NotFound(new { Message = "Application Not Found" });
+        //        }
+
+        //        if (role.ToLower() != "admin" && application.SubmittedBy != user.IdNumber)
+        //        {
+        //            return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+        //        }
+
+        //        var nextOfKins = await _applicationRepo.GetNextOfKins(applicationId);
+
+        //        if (nextOfKins.Count + payload.Count > 5)
+        //        {
+        //            return BadRequest(new { Message = $"A child can only have 5 next of kins there is {nextOfKins.Count} already added" });
+        //        }
+
+        //        if (_generalChecksHelper.HasDuplicateNames(new List<AddMedicalCondition?>(), new List<AddAllergy?>(), payload)) return Conflict(new { Message = "Has duplicates Next Of Kins" });
+
+
+        //        var result = await _applicationRepo.AddNextOfKins(payload, applicationId);
+
+        //        if (result.ModifiedCount <= 0)
+        //        {
+        //            return BadRequest(new { Message = "Could not add NextOfKins to application" });
+        //        }
+
+        //        return Ok(new { Message = "Update successful" });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in the ApplicationController in the AddNextOfKins endpoint");
+        //        return StatusCode(500, new { Message = "Encoutered an error" });
+        //    }
+
+        //}
 
     }
 }

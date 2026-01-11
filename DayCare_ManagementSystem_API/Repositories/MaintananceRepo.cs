@@ -18,7 +18,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         {
             var database = client.GetDatabase(Dbsettings.Value.DatabaseName);
 
-            _maintenanceCollection = database.GetCollection<maintenance>(Dbsettings.Value.ApplicationsCollection);
+            _maintenanceCollection = database.GetCollection<maintenance>(Dbsettings.Value.maintenanceCollection);
             _logger = logger;
         }
 

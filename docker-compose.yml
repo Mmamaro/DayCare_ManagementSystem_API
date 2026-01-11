@@ -13,6 +13,7 @@ services:
       - "8081:8081"
     user: root
     environment:
+      - DocumentsFolder=/app/Documents
       - SchoolName=Vleeschboom Pre-School
       - DefaultUser_Email=${DefaultUser_Email}
       - DefaultUser_Password=${DefaultUser_Password}
@@ -22,7 +23,7 @@ services:
       - SMTPServer=${SMTPServer}
       - SMTPServerPort=${SMTPServerPort}
       - DbSettings__UsersCollection=Users
-      - DbSettings__DocumentsMetadataCollection=DocumentsMetadata
+      - DbSettings__DocumentsMetadataCollection=DocumentsMetaData
       - DbSettings__RefreshTokenCollection=RefreshTokens
       - DbSettings__ConnectionString=mongodb://host.docker.internal:27017
       - DbSettings__DatabaseName=daycare_management-system_db
@@ -37,8 +38,10 @@ services:
       - FrontEndBaseUrl=https://localhost:80
       - AppropriateStudentAge=5
       - MaxStudentsAllowed=2
-      - PickUpWorkerRunHour=13
-      - PickUpWokerRunMinutes=09
+      - PickUpWorkerRunHour=17
+      - PickUpWokerRunMinutes=00
+      - DBCleanUpMonth=01
+      - DBCleanUpDay=08 
     depends_on:
         - mongo
 

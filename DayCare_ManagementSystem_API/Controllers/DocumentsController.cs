@@ -51,12 +51,13 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var application = await _applicationRepo.GetApplicationByStudentIdNumber(studentIdNumber);
 
+                if (application == null) return NotFound(new { Message = "StudentIdNumber does not have related application" });
+
+
                 if (role.ToLower() != "admin" && user.IdNumber != application.SubmittedBy)
                 {
                     return Unauthorized( new {Message = "User cannot upload documents for an application that does not belong to them."});
                 }
-
-                if (application == null) return NotFound( new {Message = "StudentIdNumber does not have related application"} );
 
                 var files = new List<IFormFile>() { file1, file2, file3 };
                 var filesWithContent = new List<IFormFile>();
@@ -98,7 +99,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [HttpGet("docsbystudentidnumber/{studentIdNumber}")]
+        [HttpGet("bystudentidnumber/{studentIdNumber}")]
         public async Task<ActionResult> GetDocumentsByStudentId(string studentIdNumber)
         {
             try

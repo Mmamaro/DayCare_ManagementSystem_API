@@ -12,11 +12,11 @@ namespace DayCare_ManagementSystem_API.Models.DTOs
         public string LastUpdatedAt { get; set; }
         public bool IsActive { get; set; }
         public string IdNumber { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string FullName { get; set; }
         public string DateOfBirth { get; set; }
         public int Age { get; set; }
         public string Gender { get; set; }
+        public bool HasDisability { get; set; }
         public int Allergies { get; set; }
         public int MedicalConditions { get; set; }
     }
