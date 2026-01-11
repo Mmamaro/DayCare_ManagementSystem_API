@@ -20,6 +20,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<List<DropOffPickUpEvent>> GetEventById(string id);
         public Task<List<DropOffPickUpEvent>> GetEventsByKinId(string id);
         public Task<UpdateResult> UpdateEvent(DropOffPickUpEvent payload);
+        public Task<DropOffPickUpEvent?> GetLastEventBefore(string studentId, DateTime occurredAt);
         public Task<DeleteResult> DeleteEvent(string id);
 
     }
@@ -157,7 +158,29 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the ");
+                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the GetEventsByStudentId method");
+                throw;
+            }
+        }
+
+        public async Task<DropOffPickUpEvent?> GetLastEventBefore(string studentId,DateTime occurredAt)
+        {
+            try
+            {
+                var filter = Builders<DropOffPickUpEvent>.Filter.And(
+                    Builders<DropOffPickUpEvent>.Filter.Eq(x => x.StudentId, studentId),
+                    Builders<DropOffPickUpEvent>.Filter.Lt(x => x.OccurredAt, occurredAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))
+                );
+
+                return await _eventsCollection
+                    .Find(filter)
+                    .SortByDescending(x => x.OccurredAt)
+                    .Limit(1)
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the GetLastEventBefore method.");
                 throw;
             }
         }
