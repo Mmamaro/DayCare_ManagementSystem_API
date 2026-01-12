@@ -1,0 +1,57 @@
+services:
+  daycare_managementsystem_api:
+    image: ${DOCKER_REGISTRY-}daycaremanagementsystemapi
+    build:
+      context: .
+      dockerfile: DayCare_ManagementSystem_API/Dockerfile
+    container_name: daycaremanagementsystemapi
+    volumes:
+      - C:\DayCareAppDocuments:/app/Documents
+      - C:\Logs:/app/Logs 
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    user: root
+    environment:
+      - DocumentsFolder=/app/Documents
+      - SchoolName=Vleeschboom Pre-School
+      - DefaultUser_Email=${DefaultUser_Email}
+      - DefaultUser_Password=${DefaultUser_Password}
+      - DefaultUser_IdNumber=${DefaultUser_IdNumber}
+      - EmailSender=${EmailSender}
+      - EmailPassword=${EmailPassword}
+      - SMTPServer=${SMTPServer}
+      - SMTPServerPort=${SMTPServerPort}
+      - DbSettings__UsersCollection=Users
+      - DbSettings__DocumentsMetadataCollection=DocumentsMetaData
+      - DbSettings__RefreshTokenCollection=RefreshTokens
+      - DbSettings__ConnectionString=mongodb://host.docker.internal:27017
+      - DbSettings__DatabaseName=daycare_management-system_db
+      - DbSettings__ApplicationsCollection=Applications
+      - DbSettings__StudentsCollection=Students
+      - DbSettings__DropOffPickUpEventsCollection=DropOffPickUpEvents
+      - DbSettings__maintenanceCollection=maintenance
+      - DbSettings__UserAuditCollection=UserAudits
+      - Jwt_Key=${Jwt_Key}
+      - Jwt_Issuer=${Jwt_Issuer}
+      - Jwt_Audience=${Jwt_Audience}
+      - FrontEndBaseUrl=https://localhost:80
+      - AppropriateStudentAge=5
+      - MaxStudentsAllowed=2
+      - PickUpWorkerRunHour=17
+      - PickUpWokerRunMinutes=00
+      - DBCleanUpMonth=12
+      - DBCleanUpDay=31 
+    depends_on:
+        - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongodb-daycaremanagementsystemapi
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

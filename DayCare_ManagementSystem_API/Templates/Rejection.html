@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body { margin: 0; padding: 0; background-color: #ffffff; }
+    .wrapper { width: 100%; padding: 60px 0; background-color: #fafafa; }
+    .container { 
+        max-width: 550px; 
+        margin: 0 auto; 
+        background-color: #ffffff; 
+        padding: 60px; 
+        border-top: 3px solid #333333;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    .school-name { 
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #888888;
+        margin-bottom: 50px;
+        text-align: center;
+    }
+    .message {
+        font-family: "Georgia", serif;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #1a1a1a;
+        text-align: left;
+    }
+    .footer-line {
+        margin-top: 50px;
+        border-top: 1px solid #eeeeee;
+        padding-top: 20px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        color: #bbbbbb;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="container">
+            <div class="school-name">
+                {{School Name}}
+            </div>
+            
+            <div class="message">
+                Dear {{ParentName}},<br><br>
+
+                Thank you for your application for the enrolment of <strong>{{ChildName}}</strong> at
+                {{School Name}} for the <strong>{{EnrolmentYear}}</strong> academic year.<br><br>
+
+                At this stage, the application is <strong>unable to proceed to acceptance</strong> due to the
+                following reason(s):<br><br>
+
+                <strong>Application feedback:</strong><br>
+                {{RejectionReason}}<br><br>
+
+                Please note that this outcome is <strong>not necessarily final</strong>. In certain cases,
+                applications may be reconsidered once outstanding requirements have been addressed or additional
+                information has been provided.<br><br>
+
+                We encourage you to review your application on the portal and make the necessary updates where
+                applicable.
+            </div>
+
+            <div class="footer-line">
+                OFFICIAL APPLICATION UPDATE
+            </div>
+        </div>
+    </div>
+</body>
+</html>
