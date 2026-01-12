@@ -31,6 +31,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> UpdateStudentProfile(string StudentId, StudentProfile payload);
         public Task<UpdateResult> UpdateNextOfKin(string StudentId, NextOfKin payload);
         public Task<UpdateResult> UpdateIsActive(UpdateIsActive payload);
+        public Task<UpdateResult> RemoveNextOfKin(string studentId, string nextOfKinId);
     }
     public class StudentRepo : IStudent
     {
@@ -672,6 +673,29 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
         }
 
+        #endregion
+
+
+        #region [ Remove NextOfKin ]
+        public async Task<UpdateResult> RemoveNextOfKin(string studentId, string nextOfKinId)
+        {
+            try
+            {
+                var filter = Builders<Student>.Filter.Eq(s => s.StudentId, studentId);
+
+                var update = Builders<Student>.Update.PullFilter(
+                    s => s.NextOfKins,
+                    k => k.NextOfKinId == nextOfKinId
+                );
+
+                return await _studentsCollections.UpdateOneAsync(filter, update);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Student repo in the RemoveNextOfKin method.");
+                throw;
+            }
+        } 
         #endregion
 
     }

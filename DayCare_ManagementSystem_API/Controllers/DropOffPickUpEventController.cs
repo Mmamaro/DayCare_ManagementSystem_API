@@ -45,6 +45,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
+                if(payload.OccurredAt > DateTime.Now.AddHours(2)) return BadRequest(new { Message = "Date cannt be in future" });
+
                 if (!eventTypes.Contains(payload.EventType)) return BadRequest( new {Message = "Invalid Event Type"} );
 
                 var studentExists = await _studentRepo.GetStudentById(payload.StudentId);
@@ -61,33 +63,27 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 if (droppedOffBefore.Count() > 0)
                 {
+
+                    var lastEvent = await _eventRepo.GetLastEventBefore(payload.StudentId, payload.OccurredAt);
+
                     if (payload.EventType.ToLower() == "dropoff")
                     {
-                        var filter = new EventFilter()
+                        if (lastEvent == null || lastEvent.EventType.ToLower() != "pickup")
                         {
-                            StartDate = DateTime.Today.AddDays(-1),
-                            EndDate = DateTime.Now,
-                            EventType = "pickup",
-                            StudentId = payload.StudentId,
-                        };
-
-                        var filterResult = await _eventRepo.GetEventsByFilters(filter);
-
-                        if (filterResult.Count() == 0) return BadRequest(new { Messaage = "Student was never picked up, cannot add a dropoff." });
+                            return BadRequest(new { Message = "Last event must be a pickup before you can add a dropoff" });
+                        }
                     }
                     else
                     {
-                        var filter = new EventFilter()
+                        if (lastEvent == null || lastEvent.EventType.ToLower() != "dropoff")
                         {
-                            StartDate = DateTime.Today,
-                            EndDate = DateTime.Today.AddHours(17),
-                            EventType = "dropoff",
-                            StudentId = payload.StudentId,
-                        };
+                            return BadRequest(new { Message = "Last event must be a dropoff before you can add a pickup" });
+                        }
+                    }
 
-                        var filterResult = await _eventRepo.GetEventsByFilters(filter);
-
-                        if (filterResult.Count() == 0) return BadRequest(new { Messaage = "Student was never dropped off, cannot add a pickup." });
+                    if(lastEvent.EventType.ToLower() == payload.EventType.ToLower())
+                    {
+                        return BadRequest(new { Message = $"Cannot add {payload.EventType} events consecutively" });
                     }
                 }
 
@@ -247,7 +243,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize("admin")]
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id:length(24)}")]
         public async Task<IActionResult> DeleteEvent(string id)
         {

@@ -15,8 +15,9 @@ namespace DayCare_ManagementSystem_API.Models
         public int EnrollmentYear { get; set; }
         public string? RejectionNotes { get; set; }
         public bool AreDocumentsSubmitted { get; set; }
-        public DateTime SubmittedAt { get; set; }
-        public DateTime LastUpdatedAt { get; set; }
+        public string SubmittedAt { get; set; }
+        public string LastUpdatedAt { get; set; }
+        public Disability Disability { get; set; }
         public StudentProfile StudentProfile { get; set; }
         public List<Allergy> Allergies { get; set; }
         public List<MedicalCondition> MedicalConditions { get; set; }
@@ -27,6 +28,7 @@ namespace DayCare_ManagementSystem_API.Models
     public class ApplicationRequest
     {
         public int EnrollmentYear { get; set; }
+        public Disability Disability { get; set; }
         public StudentProfile StudentProfile { get; set; }
         public List<AddAllergy>? allergies { get; set; }
         public List<AddMedicalCondition>? MedicalConditions { get; set; }
@@ -36,12 +38,21 @@ namespace DayCare_ManagementSystem_API.Models
     public class ApplicationFilters
     {
         public int? EnrollmentYear { get; set; }
+
+        [StringLength(13, MinimumLength = 13)]
         public string? StudentIdNumber { get; set; }
+
+        [StringLength(13, MinimumLength = 13)]
         public string? NextOfKinIdNumber { get; set; }
+        public bool? HasDisability { get; set; }
         public bool? AreDocumentsSubmitted { get; set; }
         public string? Status { get; set; }
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
+
+        [Required(ErrorMessage = "start date is required")]
+        public DateTime? Start { get; set; }
+
+        [Required(ErrorMessage = "end date is required")]
+        public DateTime? End { get; set; }
     }
 
     public class UpdateApplicationStatus

@@ -35,29 +35,43 @@ namespace DayCare_ManagementSystem_API.Services
                 try
                 {
                     _logger.LogInformation($"DBCleanUpWorkerService running aat: {DateTime.Now.AddHours(2)}");
+                    var dbCleanUpMonth = int.Parse(Environment.GetEnvironmentVariable("DBCleanUpMonth")!);
+                    var DBCleanUpDay = int.Parse(Environment.GetEnvironmentVariable("DBCleanUpDay")!);
                     var today = DateTime.Today;
 
-                    var runYear = await _maintenanceRepo.GetLastRunYear("YearEndDbCleanup");
+                    var lastRunYear = await _maintenanceRepo.GetLastRunYear("YearEndDbCleanup");
 
-                    if (runYear != today.Year && today.Month == 12 && today.Day == 31)
+                    if (lastRunYear != today.Year && today.Month == dbCleanUpMonth && today.Day == DBCleanUpDay)
                     {
                         var collections = new List<string>()
                         {
                             _Dbsettings.Value.StudentsCollection,
                             _Dbsettings.Value.ApplicationsCollection,
                             _Dbsettings.Value.DocumentsMetadataCollection,
-                            _Dbsettings.Value.DropOffPickUpEventsCollection
+                            _Dbsettings.Value.DropOffPickUpEventsCollection,
+                            _Dbsettings.Value.UserAuditCollection
                         };
 
                         foreach (var name in collections)
                         {
-                            await _database.DropCollectionAsync(name);
-                            _logger.LogWarning("Dropped collection: {Collection}", name);
+                            if(await CollectionExists(name))
+                            {
+                                await _database.DropCollectionAsync(name);
+                                _logger.LogWarning("Dropped collection: {Collection}", name);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Collection does not exist: {Collection}", name);
+                            }
+
+
                         }
 
                         await _maintenanceRepo.SetLastRunYear("YearEndDbCleanup", today.Year);
 
                     }
+
+                    _logger.LogInformation($"DBCleanUpWorkerService done running at: {DateTime.Now.AddHours(2)}");
 
                     await Task.Delay(TimeSpan.FromHours(24));
                 }
@@ -67,6 +81,12 @@ namespace DayCare_ManagementSystem_API.Services
                     throw;
                 }
             }
+        }
+
+        private async Task<bool> CollectionExists(string name)
+        {
+            var collections = await _database.ListCollectionNames().ToListAsync();
+            return collections.Contains(name);
         }
     }
 }

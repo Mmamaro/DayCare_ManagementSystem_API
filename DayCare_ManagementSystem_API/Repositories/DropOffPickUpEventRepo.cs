@@ -17,9 +17,10 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<List<DropOffPickUpEvent>> GetAllEvents();
         public Task<List<DropOffPickUpEvent>> GetEventsByFilters(EventFilter payload);
         public Task<List<DropOffPickUpEvent>> GetEventsByStudentId(string id);
-        public Task<List<DropOffPickUpEvent>> GetEventById(string id);
+        public Task<DropOffPickUpEvent> GetEventById(string id);
         public Task<List<DropOffPickUpEvent>> GetEventsByKinId(string id);
         public Task<UpdateResult> UpdateEvent(DropOffPickUpEvent payload);
+        public Task<DropOffPickUpEvent?> GetLastEventBefore(string studentId, DateTime occurredAt);
         public Task<DeleteResult> DeleteEvent(string id);
 
     }
@@ -136,11 +137,11 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
         }
 
-        public async Task<List<DropOffPickUpEvent>> GetEventById(string id)
+        public async Task<DropOffPickUpEvent> GetEventById(string id)
         {
             try
             {
-                return await _eventsCollection.Find(x => x.EventId == id).ToListAsync();
+                return await _eventsCollection.Find(x => x.EventId == id).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
@@ -157,7 +158,29 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the ");
+                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the GetEventsByStudentId method");
+                throw;
+            }
+        }
+
+        public async Task<DropOffPickUpEvent?> GetLastEventBefore(string studentId,DateTime occurredAt)
+        {
+            try
+            {
+                var filter = Builders<DropOffPickUpEvent>.Filter.And(
+                    Builders<DropOffPickUpEvent>.Filter.Eq(x => x.StudentId, studentId),
+                    Builders<DropOffPickUpEvent>.Filter.Lt(x => x.OccurredAt, occurredAt.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"))
+                );
+
+                return await _eventsCollection
+                    .Find(filter)
+                    .SortByDescending(x => x.OccurredAt)
+                    .Limit(1)
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the DropOffPickUpEventRepo in the GetLastEventBefore method.");
                 throw;
             }
         }
