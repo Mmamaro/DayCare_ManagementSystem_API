@@ -75,8 +75,6 @@ namespace DayCare_ManagementSystem_API.Services
 
                                 if (student != null && student.IsActive == true)
                                 {
-                                    var baseUrl = Environment.GetEnvironmentVariable("FrontEndBaseUrl")!;
-                                    var url = $"{baseUrl}/auth";
                                     var path = $"./Templates/PickUpNotification.html";
                                     var template = System.IO.File.ReadAllText(path).Replace("\n", "");
 

@@ -45,6 +45,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Unauthorized(new { Message = "Invalid token" });
                 }
 
+                if(payload.OccurredAt > DateTime.Now.AddHours(2)) return BadRequest(new { Message = "Date cannt be in future" });
+
                 if (!eventTypes.Contains(payload.EventType)) return BadRequest( new {Message = "Invalid Event Type"} );
 
                 var studentExists = await _studentRepo.GetStudentById(payload.StudentId);
@@ -241,7 +243,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
         }
 
-        [Authorize("admin")]
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id:length(24)}")]
         public async Task<IActionResult> DeleteEvent(string id)
         {

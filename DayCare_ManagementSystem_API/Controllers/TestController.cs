@@ -5,11 +5,11 @@ using System.IO;
 
 namespace DayCare_ManagementSystem_API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/test")]
     [ApiController]
     public class TestController : ControllerBase
     {
-        private readonly ILogger<TestController>? _logger;
+        private readonly ILogger<TestController> _logger;
         private readonly EmailService _emailService;
 
         public TestController(ILogger<TestController> logger, EmailService emailService)
@@ -18,26 +18,15 @@ namespace DayCare_ManagementSystem_API.Controllers
             _emailService = emailService;
         }
 
-        [HttpPost]
-        public async Task<ActionResult> testemail(List<string> receiptient)
+        [HttpGet]
+        public async Task<ActionResult> test()
         {
             try
             {
 
-                var path = $"./Templates/ApplicationReceived.html";
-                var template = System.IO.File.ReadAllText(path).Replace("\n", "");
-                template = template.Replace("{{User}}", "Paballo")
-                                    .Replace("{{child name}}", "Remo");
+                _logger.LogInformation("Testing API");
 
-
-                string response = await _emailService.SendTemplateEmail(receiptient, "Application Received", template);
-
-                if (response.ToLower() == "sent")
-                {
-                    return Ok();
-                }
-
-                return BadRequest();
+                return Ok("Healthy");
             }
             catch (Exception ex)
             {

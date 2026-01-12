@@ -40,8 +40,8 @@ services:
       - MaxStudentsAllowed=2
       - PickUpWorkerRunHour=17
       - PickUpWokerRunMinutes=00
-      - DBCleanUpMonth=01
-      - DBCleanUpDay=08 
+      - DBCleanUpMonth=12
+      - DBCleanUpDay=31 
     depends_on:
         - mongo
 

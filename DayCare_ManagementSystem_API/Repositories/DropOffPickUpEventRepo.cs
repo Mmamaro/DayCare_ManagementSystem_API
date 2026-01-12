@@ -17,7 +17,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<List<DropOffPickUpEvent>> GetAllEvents();
         public Task<List<DropOffPickUpEvent>> GetEventsByFilters(EventFilter payload);
         public Task<List<DropOffPickUpEvent>> GetEventsByStudentId(string id);
-        public Task<List<DropOffPickUpEvent>> GetEventById(string id);
+        public Task<DropOffPickUpEvent> GetEventById(string id);
         public Task<List<DropOffPickUpEvent>> GetEventsByKinId(string id);
         public Task<UpdateResult> UpdateEvent(DropOffPickUpEvent payload);
         public Task<DropOffPickUpEvent?> GetLastEventBefore(string studentId, DateTime occurredAt);
@@ -137,11 +137,11 @@ namespace DayCare_ManagementSystem_API.Repositories
             }
         }
 
-        public async Task<List<DropOffPickUpEvent>> GetEventById(string id)
+        public async Task<DropOffPickUpEvent> GetEventById(string id)
         {
             try
             {
-                return await _eventsCollection.Find(x => x.EventId == id).ToListAsync();
+                return await _eventsCollection.Find(x => x.EventId == id).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {

@@ -44,6 +44,7 @@ namespace DayCare_ManagementSystem_API.Models
         public  string? NextOfKinId { get; set; }
         public string? StudentId { get; set; }
         public string? EventType { get; set; }
+        public string? CapturedBy { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
