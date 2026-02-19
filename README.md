@@ -81,7 +81,7 @@ Google doc: https://docs.google.com/document/d/19UwikCejbdWuP9KGbEKySlNxIlsKL3b2
 
 ## Future Improvements
 
-Make it a multi-tenant app, every school that uses the app will stay in the same app and share a database so to speak instead of having different deployments each school schools.
+Make it a multi-tenant app, every school that uses the app will stay in the same app and share a database so to speak instead of having different deployments for each school.
 
 ## Contacts
 
