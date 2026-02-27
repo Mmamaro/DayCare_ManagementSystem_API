@@ -32,6 +32,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> UpdateNextOfKin(string StudentId, NextOfKin payload);
         public Task<UpdateResult> UpdateIsActive(UpdateIsActive payload);
         public Task<UpdateResult> RemoveNextOfKin(string studentId, string nextOfKinId);
+        public Task<UpdateResult> UpdateAdress(string applicationId, Address payload);
     }
     public class StudentRepo : IStudent
     {
@@ -509,6 +510,32 @@ namespace DayCare_ManagementSystem_API.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the Student repo in the UpdateIsActive method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Update Application UpdateAdress ]
+
+        public async Task<UpdateResult> UpdateAdress(string studentId, Address payload)
+        {
+            try
+            {
+                var update = Builders<Student>.Update
+                    .Set(a => a.Address, payload)
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+
+                var result = await _studentsCollections
+                    .UpdateOneAsync(a => a.StudentId == studentId, update);
+
+                return result;
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Student repo in the UpdateAdress method.");
                 throw;
             }
         }
