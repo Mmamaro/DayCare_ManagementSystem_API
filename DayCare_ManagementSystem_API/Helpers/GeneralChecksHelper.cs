@@ -49,7 +49,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsValidIdNumber");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsValidIdNumber method.");
                 throw;
             }
         }
@@ -80,24 +80,25 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the DoesDobMatchIdNumber");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the DoesDobMatchIdNumber method.");
                 throw;
             }
         }
 
 
-        public (bool,string) IsAgeAppropriate(int enrollmentYear, string DOB)
+        public (bool,string) IsAgeAppropriate(int? enrollmentYear, string DOB)
         {
             try
             {
                 var appropriateAge = int.Parse(Environment.GetEnvironmentVariable("AppropriateStudentAge")!);
+                var enrollmentYr = Convert.ToInt16(enrollmentYear);
 
                 if (!DateTime.TryParse(DOB, out var dateOfBirth))
                 {
                     return (false, "Invalid date format");
                 }
 
-                var enrollmentDate = new DateTime(enrollmentYear, 1, 1);
+                var enrollmentDate = new DateTime(enrollmentYr, 1, 1);
 
                 if (dateOfBirth > enrollmentDate)
                 {
@@ -118,7 +119,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsAgeAppropriate");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsAgeAppropriate method");
                 throw;
             }
         }
@@ -158,7 +159,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateAllergyNames");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateAllergyNames method");
                 throw;
             }
         } 
@@ -190,7 +191,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames method");
                 throw;
             }
         }
@@ -230,7 +231,7 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the HasDuplicateNames method");
                 throw;
             }
         }
@@ -269,12 +270,12 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsValidSeverity");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the IsValidSeverity method");
                 throw;
             }
         }
 
-        public (bool,string) ValidApplicationPeriod(int enrollmentYear)
+        public (bool,string) ValidApplicationPeriod(int? enrollmentYear)
         {
             try
             {
@@ -299,7 +300,24 @@ namespace DayCare_ManagementSystem_API.Helpers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in the GeneralChecksHelper in the ValidApplicationPeriod");
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the ValidApplicationPeriod method");
+                throw;
+            }
+        }
+
+        public string SetFullAddress(Address address)
+        {
+            try
+            {
+
+                var fullAddress = address.StreetNumber == null ? $"{address.StreetName},{address.Suburb},{address.City},{address.Province},{address.PostalCode},{address.Country}" : $"{address.StreetNumber},{address.StreetName},{address.Suburb},{address.City},{address.Province},{address.PostalCode},{address.Country}";
+
+                return fullAddress;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the GeneralChecksHelper in the SetFullAddress mrthod");
                 throw;
             }
         }

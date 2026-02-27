@@ -82,7 +82,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     NextOfKins = application.NextOfKins,
                     RegisteredAt = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     StudentId = application.StudentProfile.StudentProfileId,
-                    StudentProfile = application.StudentProfile
+                    StudentProfile = application.StudentProfile,
+                    Disability = application.Disability
                 };
 
                 var isAdded = await _studentRepo.AddStudent(student);
@@ -188,6 +189,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     MedicalConditions = x.MedicalConditions.Count(),
                     HasDisability = x.Disability.HasDisability
                 });
+
+                if (!StudentDTO.Any()) return Ok(new List<StudentDTO>());
 
                 var orderedStudents = StudentDTO.OrderByDescending(x => x.Age).ToList();
 
@@ -454,7 +457,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update allergy" });
                 }
 
-                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated Allergy: {payload.AllergyId} for: {StudentId}");
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated Allergy: {payload.AllergyId} for student: {StudentId}");
 
                 return Ok(new { Message = "Update successful" });
             }
@@ -524,7 +527,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update medical condition" });
                 }
 
-                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated medical condition: {payload.MedicalConditionId} for: {StudentId}");
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated medical condition: {payload.MedicalConditionId} for student: {StudentId}");
 
                 return Ok(new { Message = "Update successful" });
             }
@@ -590,7 +593,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update next of kin" });
                 }
 
-                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated nextofkin: {payload.NextOfKinId} for: {StudentId}");
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated nextofkin: {payload.NextOfKinId} for student: {StudentId}");
 
                 return Ok(new { Message = "Update successful" });
             }
@@ -601,6 +604,63 @@ namespace DayCare_ManagementSystem_API.Controllers
             }
 
         }
+
+
+        [HttpPatch("{StudentId:length(24)}/update-address")]
+        public async Task<IActionResult> UpdateAddress(string StudentId, Address payload)
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+                var Student = await _studentRepo.GetStudentById(StudentId);
+
+                if (Student == null)
+                {
+                    return NotFound(new { Message = "Student Not Found" });
+                }
+
+                var isRelatedToStudent = Student?.NextOfKins.FirstOrDefault(a => a.IdNumber == user.IdNumber);
+
+                if (role.ToLower() != "admin" && isRelatedToStudent == null)
+                {
+                    return Unauthorized(new { Message = "You cannot update an Student that does not belong to you." });
+                }
+
+                payload.FullAdress = _generalChecksHelper.SetFullAddress(payload);
+
+                var result = await _studentRepo.UpdateAdress(StudentId, payload);
+
+                if (result.ModifiedCount <= 0)
+                {
+                    return BadRequest(new { Message = "Could not update address" });
+                }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated address for student: {StudentId}");
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the StudentController in the UpdateAddress endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+
 
         [Authorize(Roles = "admin")]
         [HttpPatch("update-isactive")]
@@ -632,7 +692,7 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update Student Status" });
                 }
 
-                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated isActive status of: {payload.StudentId}");
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated isActive status of student: {payload.StudentId}");
 
                 return Ok(new { Message = "Update successful" });
             }

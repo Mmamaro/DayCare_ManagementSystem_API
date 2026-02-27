@@ -12,13 +12,14 @@ namespace DayCare_ManagementSystem_API.Models
         public string? ApplicationId { get; set; }
         public string ApplicationStatus { get; set; }
         public string SubmittedBy { get; set; }
-        public int EnrollmentYear { get; set; }
+        public int? EnrollmentYear { get; set; }
         public string? RejectionNotes { get; set; }
         public bool AreDocumentsSubmitted { get; set; }
         public string SubmittedAt { get; set; }
         public string LastUpdatedAt { get; set; }
         public Disability Disability { get; set; }
         public StudentProfile StudentProfile { get; set; }
+        public Address Address { get; set; }
         public List<Allergy> Allergies { get; set; }
         public List<MedicalCondition> MedicalConditions { get; set; }
         public List<NextOfKin> NextOfKins { get; set; }
@@ -27,12 +28,22 @@ namespace DayCare_ManagementSystem_API.Models
 
     public class ApplicationRequest
     {
-        public int EnrollmentYear { get; set; }
-        public Disability Disability { get; set; }
-        public StudentProfile StudentProfile { get; set; }
+        [Required(ErrorMessage = "EnrollmentYear is required")]
+        public int? EnrollmentYear { get; set; }
+
+        [Required(ErrorMessage = "Address is required")]
+        public Address? Address { get; set; }
+
+        [Required(ErrorMessage = "Disability is required")]
+        public Disability? Disability { get; set; }
+
+        [Required(ErrorMessage = "StudentProfile is required")]
+        public StudentProfile? StudentProfile { get; set; }
         public List<AddAllergy>? allergies { get; set; }
         public List<AddMedicalCondition>? MedicalConditions { get; set; }
-        public List<AddNextOfKin> NextOfKins { get; set; }
+
+        [Required(ErrorMessage = "NextOfKins are required")]
+        public List<AddNextOfKin>? NextOfKins { get; set; }
     }
 
     public class ApplicationFilters
@@ -57,7 +68,8 @@ namespace DayCare_ManagementSystem_API.Models
 
     public class UpdateApplicationStatus
     {
-        public string Status { get; set; }
+        [Required(ErrorMessage = "Status is required")]
+        public string? Status { get; set; }
         public string? RejectionNotes { get; set; }
     }
 

@@ -36,6 +36,7 @@ namespace DayCare_ManagementSystem_API.Repositories
         public Task<UpdateResult> UpdateStatus(string applicationId, UpdateApplicationStatus payload);
         public Task<UpdateResult> UpdateSubmittedBy(string applicationId, string SubmittedBy);
         public Task<UpdateResult> UpdateAreDocumentsSubmitted(string studentIdNumber, bool isSubmitted);
+        public Task<UpdateResult> UpdateAdress(string applicationId, Address payload);
 
     }
     public class ApplicationRepo : IApplication
@@ -119,6 +120,7 @@ namespace DayCare_ManagementSystem_API.Repositories
                     SubmittedAt = DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
                     SubmittedBy = submittedBy,
                     LastUpdatedAt = DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                    Address = payload.Address,
                     Allergies = allergies,
                     EnrollmentYear = payload.EnrollmentYear,
                     MedicalConditions = medicalConditions,
@@ -684,6 +686,32 @@ namespace DayCare_ManagementSystem_API.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the Application repo in the UpdateNextOfKin method.");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region [ Update Application UpdateAdress ]
+
+        public async Task<UpdateResult> UpdateAdress(string applicationId, Address payload)
+        {
+            try
+            {
+                var update = Builders<Application>.Update
+                    .Set(a => a.Address, payload)
+                    .Set(a => a.LastUpdatedAt, DateTime.Now.AddHours(2).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+
+                var result = await _ApplicationCollection
+                    .UpdateOneAsync(a => a.ApplicationId == applicationId, update);
+
+                return result;
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the Application repo in the UpdateAdress method.");
                 throw;
             }
         }
