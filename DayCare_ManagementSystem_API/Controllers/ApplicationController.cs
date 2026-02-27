@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using System;
 using System.Security.Claims;
+using static QRCoder.PayloadGenerator;
 using static System.Net.Mime.MediaTypeNames;
 using Application = DayCare_ManagementSystem_API.Models.Application;
 
@@ -27,7 +28,8 @@ namespace DayCare_ManagementSystem_API.Controllers
         private readonly GeneralChecksHelper _generalChecksHelper;
         private readonly IUser _userRepo;
         private readonly EmailService _emailService;
-        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper, IUser userRepo, EmailService emailService)
+        private readonly IUserAudit _userAudit;
+        public ApplicationController(ILogger<ApplicationController> logger, IApplication applicationRepo, DocumentsUploadService documentUploadService, GeneralChecksHelper genralChecksHelper, IUser userRepo, EmailService emailService, IUserAudit userAudit)
         {
             _logger = logger;
             _applicationRepo = applicationRepo;
@@ -35,6 +37,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             _generalChecksHelper = genralChecksHelper;
             _userRepo = userRepo;
             _emailService = emailService;
+            _userAudit = userAudit;
         }
 
         [HttpPost]
@@ -46,6 +49,7 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
                 {
@@ -105,6 +109,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return Conflict(new {Message = "Application for this student already exists"});
                 }
 
+                payload.Address.FullAdress = _generalChecksHelper.SetFullAddress(payload.Address);
+
                 var result = await _applicationRepo.AddApplication(payload, user.IdNumber);
 
                 if (result == null)
@@ -120,6 +126,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 List<string> receipient = new List<string> { user.Email };
 
                 string response = await _emailService.SendTemplateEmail(receipient, "Application Received", template);
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "write", $"Submited an application");
 
                 return Ok(new { Message = "Success" });
             }
@@ -285,6 +293,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
@@ -334,6 +343,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest( new {Message = "Could not update allergy"} );
                 }
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated Allergy: {payload.AllergyId} on application: {applicationId}");
+
                 return Ok(new {Message = "Update successful"});
             }
             catch (Exception ex)
@@ -351,6 +362,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
@@ -399,6 +411,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update medical condition" });
                 }
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated MedicalCondition: {payload.MedicalConditionId} on application: {applicationId}");
+
                 return Ok(new { Message = "Update successful" });
             }
             catch (Exception ex)
@@ -416,6 +430,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
@@ -446,11 +461,65 @@ namespace DayCare_ManagementSystem_API.Controllers
                     return BadRequest(new { Message = "Could not update medical condition" });
                 }
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated NextOfKin: {payload.NextOfKinId} on application: {applicationId}");
+
                 return Ok(new { Message = "Update successful" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in the ApplicationController in the UpdateApplicationNextOfKin endpoint");
+                return StatusCode(500, new { Message = "Encoutered an error" });
+            }
+
+        }
+
+        [HttpPatch("{applicationId:length(24)}/update-address")]
+        public async Task<IActionResult> UpdateAddress(string applicationId, Address payload)
+        {
+            try
+            {
+                var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
+                var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
+                var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
+
+                if (tokenType.ToLower() != "access-token")
+                {
+                    return Unauthorized(new { Message = "Invalid token" });
+                }
+
+                var user = await _userRepo.GetUserByEmail(tokenUserEmail);
+
+                if (user == null) return BadRequest(new { Message = "Invalid token" });
+
+                var application = await _applicationRepo.GetApplicationById(applicationId);
+
+                if (application == null)
+                {
+                    return NotFound(new { Message = "Application Not Found" });
+                }
+
+                if (role.ToLower() != "admin" && role.ToLower() != "staff" && application.SubmittedBy != user.IdNumber)
+                {
+                    return Unauthorized(new { Message = "You cannot update an application that does not belong to you." });
+                }
+
+                payload.FullAdress = _generalChecksHelper.SetFullAddress(payload);
+
+                var result = await _applicationRepo.UpdateAdress(applicationId, payload);
+
+                if (result.ModifiedCount <= 0)
+                {
+                    return BadRequest(new { Message = "Could not update medical condition" });
+                }
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated Address on application: {applicationId}");
+
+                return Ok(new { Message = "Update successful" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in the ApplicationController in the UpdateAddress endpoint");
                 return StatusCode(500, new { Message = "Encoutered an error" });
             }
 
@@ -537,6 +606,8 @@ namespace DayCare_ManagementSystem_API.Controllers
 
                 await _emailService.SendTemplateEmail(receipient, "Application Feedback", template);
 
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "update", $"Updated Application status on application: {applicationId}");
+
                 return Ok(new { Message = "Update successful" });
             }
             catch (Exception ex)
@@ -556,6 +627,7 @@ namespace DayCare_ManagementSystem_API.Controllers
             {
                 var tokenType = User.Claims.FirstOrDefault(c => c.Type == "TokenType")?.Value;
                 var tokenUserEmail = User?.FindFirstValue(ClaimTypes.Email)?.ToString();
+                var tokenUserId = User?.FindFirstValue(ClaimTypes.Sid)?.ToString();
                 var role = User?.FindFirstValue(ClaimTypes.Role)?.ToString();
 
                 if (tokenType.ToLower() != "access-token")
@@ -587,6 +659,8 @@ namespace DayCare_ManagementSystem_API.Controllers
                 }
 
                 await _documentUploadService.DeleteStudentDocumentsFolder(application.StudentProfile.IdNumber);
+
+                await _userAudit.AddAudit(tokenUserId, tokenUserEmail, "delete", $"deleted application: {applicationId}");
 
                 return Ok(new { Message = "Delete successful" });
             }

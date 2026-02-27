@@ -10,12 +10,13 @@ namespace DayCare_ManagementSystem_API.Models
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         public string? StudentId { get; set; }
-        public int EnrollmentYear { get; set; }
+        public int? EnrollmentYear { get; set; }
         public string RegisteredAt { get; set; }
         public string LastUpdatedAt { get; set; }
         public bool IsActive { get; set; }
         public StudentProfile StudentProfile { get; set; }
         public Disability Disability { get; set; }
+        public Address Address { get; set; }
         public List<Allergy>? Allergies { get; set; }
         public List<MedicalCondition>? MedicalConditions { get; set; }
         public List<NextOfKin> NextOfKins { get; set; }
